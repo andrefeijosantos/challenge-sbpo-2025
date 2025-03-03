@@ -3,32 +3,40 @@ package org.sbpo2025.challenge;
 import org.apache.commons.lang3.time.StopWatch;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+
+enum Method {
+	SPOModel,
+	ColumnGeneration
+}
+
 public class ChallengeSolver {
+	
     private final long MAX_RUNTIME = 600000; // milliseconds; 10 minutes
+    private Instance inst;
 
-    protected List<Map<Integer, Integer>> orders;
-    protected List<Map<Integer, Integer>> aisles;
-    protected int nItems;
-    protected int waveSizeLB;
-    protected int waveSizeUB;
-
-    public ChallengeSolver(
-            List<Map<Integer, Integer>> orders, List<Map<Integer, Integer>> aisles, int nItems, int waveSizeLB, int waveSizeUB) {
-        this.orders = orders;
-        this.aisles = aisles;
-        this.nItems = nItems;
-        this.waveSizeLB = waveSizeLB;
-        this.waveSizeUB = waveSizeUB;
+    public ChallengeSolver(Instance instance) {
+        this.inst = instance;
     }
 
-    public ChallengeSolution solve(StopWatch stopWatch) {
-        // Implement your solution here
-        return null;
+    public ChallengeSolution solve(Method method, StopWatch stopWatch) {
+    	ChallengeSolution solution = null;
+    	
+    	switch(method) {
+	    	case SPOModel:
+	        	SPOModel model = new SPOModel(this.inst);
+	        	model.build();
+	        	model.optimize(stopWatch);
+	        	break;
+	        	
+	    	case ColumnGeneration:
+	    		break;
+    	}
+    	
+        return solution;
     }
 
     /*
@@ -47,31 +55,31 @@ public class ChallengeSolver {
             return false;
         }
 
-        int[] totalUnitsPicked = new int[nItems];
-        int[] totalUnitsAvailable = new int[nItems];
+        int[] totalUnitsPicked = new int[inst.n];
+        int[] totalUnitsAvailable = new int[inst.n];
 
         // Calculate total units picked
         for (int order : selectedOrders) {
-            for (Map.Entry<Integer, Integer> entry : orders.get(order).entrySet()) {
+            for (Map.Entry<Integer, Integer> entry : inst.orders.get(order).entrySet()) {
                 totalUnitsPicked[entry.getKey()] += entry.getValue();
             }
         }
 
         // Calculate total units available
         for (int aisle : visitedAisles) {
-            for (Map.Entry<Integer, Integer> entry : aisles.get(aisle).entrySet()) {
+            for (Map.Entry<Integer, Integer> entry : inst.aisles.get(aisle).entrySet()) {
                 totalUnitsAvailable[entry.getKey()] += entry.getValue();
             }
         }
 
         // Check if the total units picked are within bounds
         int totalUnits = Arrays.stream(totalUnitsPicked).sum();
-        if (totalUnits < waveSizeLB || totalUnits > waveSizeUB) {
+        if (totalUnits < inst.LB || totalUnits > inst.UB) {
             return false;
         }
 
         // Check if the units picked do not exceed the units available
-        for (int i = 0; i < nItems; i++) {
+        for (int i = 0; i < inst.n; i++) {
             if (totalUnitsPicked[i] > totalUnitsAvailable[i]) {
                 return false;
             }
@@ -90,7 +98,7 @@ public class ChallengeSolver {
 
         // Calculate total units picked
         for (int order : selectedOrders) {
-            totalUnitsPicked += orders.get(order).values().stream()
+            totalUnitsPicked += inst.orders.get(order).values().stream()
                     .mapToInt(Integer::intValue)
                     .sum();
         }
