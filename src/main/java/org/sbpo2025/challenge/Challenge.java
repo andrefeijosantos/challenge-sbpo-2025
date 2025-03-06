@@ -10,7 +10,7 @@ public class Challenge {
 
         // Check for the correct usage of command-line arguments.
         if (args.length != 2) {
-            System.out.println("Usage: java -jar target/ChallengeSBPO2025-1.0.jar <inputFilePath> <outputFilePath>");
+            System.out.println("Usage: java -Djava.library.path=C:\\Applications\\CPLEX_Studio2211\\opl\\bin\\x64_win64 -jar target/ChallengeSBPO2025-1.0.jar <inputFilePath> <outputFilePath>");
             return;
         }
         
