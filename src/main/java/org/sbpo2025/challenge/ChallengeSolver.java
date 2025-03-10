@@ -29,7 +29,7 @@ public class ChallengeSolver {
 	    	case SPOModel:
 	        	SPOModel model = new SPOModel(this.inst);
 	        	model.build();
-	        	model.optimize(stopWatch);
+	        	solution = model.optimize(stopWatch);
 	        	break;
 	        	
 	    	case ColumnGeneration:

@@ -1,3 +1,6 @@
+// To compile: mvn clean package
+// To run: java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar <input-file> <output-file>
+
 package org.sbpo2025.challenge;
 
 import org.apache.commons.lang3.time.StopWatch;
@@ -20,7 +23,9 @@ public class Challenge {
         // Execute solver for instance read.
         var solver = new ChallengeSolver(instance);
         ChallengeSolution solution = solver.solve(Method.SPOModel, stopWatch);
-
+        
+        System.out.println(stopWatch);
+        
         instance.writeOutput(solution, args[1]);
     }
 }
