@@ -26,8 +26,8 @@ public class SPOModel {
 	int[][][] ub, lb;
 	
 	// Model variables.
-	IloIntVar z;
-	IloIntVar[] y, f;
+	IloNumVar z;
+	IloIntVar[] y;
 	IloIntVar[][][] x;
 	
 	// Objective Value.
@@ -46,10 +46,6 @@ public class SPOModel {
 		try {			
 			model = new IloCplex();
 			model.setOut(null);
-			model.setParam(IloCplex.Param.Threads, 1);
-			
-			System.out.println("Model with " + model.getParam(IloCplex.Param.Threads) + "threads.");
-			System.out.println("Total available: " + Runtime.getRuntime().availableProcessors() + "\n");
 		} catch(IloException e) {
 			System.out.print("No model built. Error: ");
 			e.printStackTrace();
@@ -117,7 +113,7 @@ public class SPOModel {
 	        		}
 	        
 	        // Quantity of collected items.
-	        z = model.intVar(inst.LB, inst.UB, "z");
+	        z = model.numVar(inst.LB, inst.UB, "z");
 	        
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -175,8 +171,6 @@ public class SPOModel {
 	        		}
 	        	
 	        	model.add(model.ifThen(model.ge(sum_xio, 0.5), model.ge(y[a], .5)));
-	        	//model.add(model.ifThen(model.ge(y[a], 0.5), model.ge(sum_xio, 0.5)));
-	        	//model.add(model.ifThen(model.le(y[a], 0.5), model.le(sum_xio, 0.5)));
 	        }
 	        
 	        // ( 5 ) w_i,o * SUM x_K[o],o,a = w_K[o],o * SUM x_i,o,a
@@ -210,15 +204,35 @@ public class SPOModel {
 		sum_y_constr = model.addEq(sum_y, NUM_AISLES);
 	}
 	
+	private void setLB(int lb) throws IloException {
+		z.setLB(lb);
+	}
+	
 	public ChallengeSolution optimize(StopWatch stopWatch) {
 		ChallengeSolution solution = null;
 		
 		try {
 			System.out.println("Number of aisles ranging from 1 to " + inst.aisles.size());
-			for(int num_aisles = 1; num_aisles <= inst.aisles.size(); num_aisles++) {	
+			int max_aisles = inst.aisles.size();
+			
+			for(int num_aisles = 1; num_aisles <= max_aisles; num_aisles++) {	
 				System.out.println("* Number of aisles: " + num_aisles);
 				
+				// Sets the number of aisles to the model.
 				this.setSumY(num_aisles);
+				
+				// Sets the Lower Bound.
+				if(solution != null) {
+					double d_lb = Math.floor(objVal * num_aisles + 1);
+					int    new_lb = (int) d_lb;
+					
+					if(new_lb > inst.UB)
+						break;
+					
+					this.setLB(new_lb);
+				}
+				
+				// Optimizes model for "num_aisles" aisles.
 				model.solve();
 				
 				System.out.println("* Status: " + model.getStatus());
@@ -226,9 +240,11 @@ public class SPOModel {
 					System.out.println("* Items quantity: " + model.getValue(z));
 					System.out.println("* ObjVal: " + model.getObjValue()/num_aisles);
 					
+					// If a better solution was found.
 					if(model.getObjValue()/num_aisles > objVal) {
 						objVal = model.getObjValue()/num_aisles;
 						
+						// Saves the solution.
 						Set<Integer> orders = new HashSet<>();
 						for(int o = 0; o < inst.orders.size(); o++) {
 							for(int a = 0; a < inst.aisles.size(); a++) {
@@ -246,6 +262,10 @@ public class SPOModel {
 								aisles.add(a);
 						
 						solution = new ChallengeSolution(orders, aisles);
+						
+						// Update max_aisles.
+						double result = inst.UB / objVal;
+						max_aisles = (int) Math.ceil(result);
 					}
 					
 					if(model.getObjValue() == inst.UB)
