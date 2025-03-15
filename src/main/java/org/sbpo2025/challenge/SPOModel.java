@@ -1,15 +1,17 @@
 package org.sbpo2025.challenge;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.time.StopWatch;
-
+import org.apache.commons.lang3.tuple.Pair;
 
 import ilog.concert.*;
 import ilog.cplex.*;
+import ilog.cplex.IloCplex.Status;
 
 
 public class SPOModel {
@@ -21,17 +23,17 @@ public class SPOModel {
 	IloCplex model;
 	
 	// Model constants.
-	int[] K;
-	int[][] q, w;
-	int[][][] ub, lb;
+	List<Integer> K;
+	HashMap<Pair<Integer, Integer>, Integer> q, w;
+	HashMap<Triple, Integer> ub;
 	
 	// Model variables.
 	IloNumVar z;
-	IloIntVar[] y;
-	IloIntVar[][][] x;
+	List<IloIntVar> y;
+	HashMap<Triple, IloIntVar> x;
 	
 	// Objective Value.
-	double objVal = Double.MIN_VALUE;
+	double objVal = 0;
 	
 	IloLinearIntExpr sum_y;
 	IloConstraint sum_y_constr = null;
@@ -53,63 +55,66 @@ public class SPOModel {
 		
 		buildConsts();
 		buildVars();
-		buildObjective();
+		buildObjective();	
 		buildConstrs();
 	}
 	
 	private void buildConsts() {		
 		// Quantity of i-th item present on a-th aisle.
-		q = new int[inst.n][inst.aisles.size()];
-		for (int i = 0; i < q.length; i++)
-        	for (int a = 0; a < q[i].length; a++) 
-        		q[i][a] = inst.aisles.get(a).containsKey(i)? inst.aisles.get(a).get(i): 0;
+		q = new HashMap<Pair<Integer, Integer>, Integer>();
+		for (int a = 0; a < inst.aisles.size(); a++) 
+			for (int i : inst.aisles.get(a).keySet()) {
+				if(inst.aisles.get(a).get(i) == 0) continue;
+        		q.put(Pair.of(i, a), inst.aisles.get(a).get(i));
+			}
 		
 		// Quantity of i-th item used on o-th order.
-		w = new int[inst.n][inst.orders.size()];
-		for (int i = 0; i < w.length; i++)
-        	for (int o = 0; o < w[i].length; o++)
-        		w[i][o] = inst.orders.get(o).containsKey(i)? inst.orders.get(o).get(i) : 0;
+		w = new HashMap<Pair<Integer, Integer>, Integer>();
+		for (int o = 0; o < inst.orders.size(); o++)
+			for (int i : inst.orders.get(o).keySet()) {
+				if(inst.orders.get(o).get(i) == 0) continue;
+        		w.put(Pair.of(i, o), inst.orders.get(o).get(i));
+			}
 		
 		// The reference-item for each order.
-		K = new int[inst.orders.size()];
-        for (int o = 0; o < K.length; o++) {
+		K = new ArrayList<Integer>(inst.orders.size());
+        for (int o = 0; o < inst.orders.size(); o++) {
         	int min_quantity = Integer.MAX_VALUE, min_item_idx = -1;
-        	for (int i = 0; i < inst.n; i++)
-        		if(w[i][o] > 0 && w[i][o] < min_quantity) {
-        			min_quantity = w[i][o];
+        	
+        	for (int i : inst.orders.get(o).keySet())
+        		if(w.get(Pair.of(i, o)) < min_quantity) {
+        			min_quantity = w.get(Pair.of(i, o));
         			min_item_idx = i;
         		}
-        	K[o] = min_item_idx;
+        	
+        	K.add(o, min_item_idx);
         }
 		
 		// Upper and Lower bounds for x_i,o,a.
-		lb = new int[inst.n][inst.orders.size()][inst.aisles.size()];
-		ub = new int[inst.n][inst.orders.size()][inst.aisles.size()];
-		for (int i = 0; i < lb.length; i++)
-	        for (int o = 0; o < lb[i].length; o++) {
-	        	for (int a = 0; a < lb[i][o].length; a++) {
-        			lb[i][o][a] = 0;
-        			ub[i][o][a] = Math.min(q[i][a], w[i][o]);
-        		}
+		ub = new HashMap<Triple, Integer>();
+		for (int o = 0; o < inst.orders.size(); o++) {
+			for (int i : inst.orders.get(o).keySet())
+	        	for (int a = 0; a < inst.aisles.size(); a++) {
+	        		if(!q.containsKey(Pair.of(i, a))) continue;
+        			ub.put(Triple.of(i, o, a), Math.min(q.get(Pair.of(i, a)), w.get(Pair.of(i, o))));
+	        	}
 		}
 	}
 	
 	private void buildVars() {
 		try {
 			// 1, if a-ith aisle was visited; 0, otherwise.
-			y = new IloIntVar[inst.aisles.size()];
-	        for (int a = 0; a < y.length; a++) 
-	            y[a] = model.boolVar("y_" + a);
+			y = new ArrayList<IloIntVar>(inst.aisles.size());
+	        for (int a = 0; a < inst.aisles.size(); a++) 
+	            y.add(a, model.boolVar("y_" + a));
 	        
 	        // Quantity of item i, for order o, collected on a-th aisle.
-	        x = new IloIntVar[inst.n][inst.orders.size()][inst.aisles.size()];
-	        for (int i = 0; i < x.length; i++)
-	        	for (int o = 0; o < x[i].length; o++)
-	        		for (int a = 0; a < x[i][o].length; a++) {
-	        			if(ub[i][o][a] < lb[i][o][a] || ub[i][o][a] == 0)
-	        				x[i][o][a] = null;
-	        			else
-	        				x[i][o][a] = model.intVar(lb[i][o][a], ub[i][o][a], "x_" + i + "_" + o + "_" + a);
+	        x = new HashMap<Triple, IloIntVar>();
+	        for (int o = 0; o < inst.orders.size(); o++)
+	        	for (int i : inst.orders.get(o).keySet())
+	        		for (int a = 0; a < inst.aisles.size(); a++) {
+	        			if(!ub.containsKey(Triple.of(i, o, a))) continue;
+	        			x.put(Triple.of(i, o, a), model.intVar(0, ub.get(Triple.of(i, o, a)), "x_" + i + "_" + o + "_" + a));
 	        		}
 	        
 	        // Quantity of collected items.
@@ -133,64 +138,64 @@ public class SPOModel {
 		try {					        	        
 	        // ( 1 ) z = SUM SUM SUM x_i,o,a
 			IloLinearIntExpr sum_xioa = model.linearIntExpr();
-	        for (int i = 0; i < inst.n; i++) 
-	        	for (int o = 0; o < inst.orders.size(); o++)
+			for (int o = 0; o < inst.orders.size(); o++)
+				for (int i : inst.orders.get(o).keySet()) 
 	        		for (int a = 0; a < inst.aisles.size(); a++) {
-	        			if(x[i][o][a] == null) continue;
-	        			sum_xioa.addTerm(1, x[i][o][a]);
+	        			if(!x.containsKey(Triple.of(i, o, a))) continue;
+	        			sum_xioa.addTerm(1, x.get(Triple.of(i, o, a)));
 	        		}
 	        
-	        model.addEq(z, sum_xioa);
+	        model.addEq(z, sum_xioa); 
 	        
 	        
 	        // ( 2 ) SUM y_a = NUM_AISLES
 	        sum_y = model.linearIntExpr();
-	        for(int a = 0; a < y.length; a++) 
-	        	sum_y.addTerm(1, y[a]);
-	        
+	        for(int a = 0; a < y.size(); a++) 
+	        	sum_y.addTerm(1, y.get(a));
+
 	        	        
 	        // ( 3 ) SUM SUM x_i,o,a <= q_i,a
 	        for (int a = 0; a < inst.aisles.size(); a++) 
-		        for (int i = 0; i < inst.n; i++) {
+		        for (int i : inst.aisles.get(a).keySet()) {
 		        	IloLinearIntExpr sum_xo = model.linearIntExpr();
 		        	for (int o = 0; o < inst.orders.size(); o++) {
-		        		if(x[i][o][a] == null) continue;
-		        		sum_xo.addTerm(1, x[i][o][a]);
+		        		if(!x.containsKey(Triple.of(i, o, a))) continue;
+		        		sum_xo.addTerm(1, x.get(Triple.of(i, o, a)));
 		        	}
-		        	model.addLe(sum_xo, q[i][a]);
+		        	model.addLe(sum_xo, q.get(Pair.of(i, a)));
 		        }
 	        
 	        
 	        // ( 4 ) SUM SUM x_i,o,a >= 1 -> y_a = 1 
 	        for(int a = 0; a < inst.aisles.size(); a++) {
 	        	IloLinearIntExpr sum_xio = model.linearIntExpr();
-	        	for(int i = 0; i < x.length; i++)
-	        		for(int o = 0; o < x[i].length; o++) {
-	        			if(x[i][o][a] == null) continue;
-	        			sum_xio.addTerm(1, x[i][o][a]);
+	        	for(int o = 0; o < inst.orders.size(); o++) 
+	        		for (int i : inst.orders.get(o).keySet()) {
+	        			if(!x.containsKey(Triple.of(i, o, a))) continue;
+	        			sum_xio.addTerm(1, x.get(Triple.of(i, o, a)));
 	        		}
 	        	
-	        	model.add(model.ifThen(model.ge(sum_xio, 0.5), model.ge(y[a], .5)));
+	        	model.add(model.ifThen(model.ge(sum_xio, 0.5), model.ge(y.get(a), .5)));
 	        }
+	        
 	        
 	        // ( 5 ) w_i,o * SUM x_K[o],o,a = w_K[o],o * SUM x_i,o,a
 	        for(int o = 0; o < inst.orders.size(); o++) {
-	        	for(int i = 0; i < inst.n; i++) {
-	        		if(w[i][o] == 0) continue;
-	        		
+	        	for(int i : inst.orders.get(o).keySet()) {
 	        		IloLinearIntExpr sum_xl = model.linearIntExpr(), sum_xr = model.linearIntExpr();
 	        		
 	        		for(int a = 0; a < inst.aisles.size(); a++) {
-	        			if(x[K[o]][o][a] != null) sum_xl.addTerm(1, x[K[o]][o][a]);
-	        			if(x[i][o][a] != null) sum_xr.addTerm(1, x[i][o][a]);
+	        			if(x.containsKey(Triple.of(K.get(o), o, a))) sum_xl.addTerm(1, x.get(Triple.of(K.get(o), o, a)));
+	        			if(x.containsKey(Triple.of(i, o, a))) sum_xr.addTerm(1, x.get(Triple.of(i, o, a)));
 	        		}
 	        		
-	        		if(i == K[o]) 
-	        			model.add(model.or(model.eq(w[K[o]][o], sum_xl), model.eq(0, sum_xl)));
+	        		int w_K_o = w.get(Pair.of(K.get(o), o));
+	        		int w_io  = w.get(Pair.of(i, o));
+	        		if(i == K.get(o)) 
+	        			model.add(model.or(model.eq(w_K_o, sum_xl), model.eq(0, sum_xl)));
 	        		else
-	        			model.addEq(model.prod(w[i][o], sum_xl), model.prod(w[K[o]][o], sum_xr));
+	        			model.addEq(model.prod(w_io, sum_xl), model.prod(w_K_o, sum_xr));
 	        	}
-
 	        }
 	        
 			
@@ -212,11 +217,10 @@ public class SPOModel {
 		ChallengeSolution solution = null;
 		
 		try {
-			System.out.println("Number of aisles ranging from 1 to " + inst.aisles.size());
+			print_header();
 			int max_aisles = inst.aisles.size();
 			
 			for(int num_aisles = 1; num_aisles <= max_aisles; num_aisles++) {	
-				System.out.println("* Number of aisles: " + num_aisles);
 				
 				// Sets the number of aisles to the model.
 				this.setSumY(num_aisles);
@@ -235,44 +239,39 @@ public class SPOModel {
 				// Optimizes model for "num_aisles" aisles.
 				model.solve();
 				
-				System.out.println("* Status: " + model.getStatus());
-				if(model.getStatus() == IloCplex.Status.Optimal) {
-					System.out.println("* Items quantity: " + model.getValue(z));
-					System.out.println("* ObjVal: " + model.getObjValue()/num_aisles);
-					
+				if(model.getStatus() == IloCplex.Status.Optimal) {					
 					// If a better solution was found.
 					if(model.getObjValue()/num_aisles > objVal) {
 						objVal = model.getObjValue()/num_aisles;
 						
 						// Saves the solution.
 						Set<Integer> orders = new HashSet<>();
-						for(int o = 0; o < inst.orders.size(); o++) {
+						for(int o = 0; o < inst.orders.size(); o++)
 							for(int a = 0; a < inst.aisles.size(); a++) {
-								if(x[K[o]][o][a] == null) continue;
-								if(model.getValue(x[K[o]][o][a]) > .5) {
+								if(!x.containsKey(Triple.of(K.get(o), o, a))) continue;
+								if(model.getValue(x.get(Triple.of(K.get(o), o, a))) > .5) {
 									orders.add(o);
 									break;
 								}
 							}
-						}
 						
 						Set<Integer> aisles = new HashSet<>();
-						for(int a = 0; a < y.length; a++) 
-							if(model.getValue(y[a]) > .5) 
+						for(int a = 0; a < y.size(); a++) 
+							if(model.getValue(y.get(a)) > .5) 
 								aisles.add(a);
 						
 						solution = new ChallengeSolution(orders, aisles);
 						
 						// Update max_aisles.
 						double result = inst.UB / objVal;
-						max_aisles = (int) Math.ceil(result);
+						max_aisles = (int) Math.floor(result);
 					}
 					
 					if(model.getObjValue() == inst.UB)
 						break;
 				}
 				
-				System.out.println("\n");
+				print_line(num_aisles, max_aisles, model.getStatus());
 			}
 			
 			System.out.println("Optimal Solution: " + objVal);
@@ -281,5 +280,37 @@ public class SPOModel {
 		}
 		
 		return solution;
+	}
+	
+	
+	
+	// === DEBUGGING AND LOGGING METHODS ===
+	private void log(String text) {
+		System.out.print(text);
+	}
+	
+	private void logln(String text) {
+		System.out.println(text);
+	}
+	
+	private void print_header() throws IloException {
+		logln("SPO Optimizer version 1 (Copyright André Luiz F. dos Santos, Pedro Fiorio Baldotto)");
+		logln("Thread count: CPLEX using up to " + model.getParam(IloCplex.Param.Threads) + " threads");
+		logln("Variable types: 1 continuous; " + x.size() + y.size() + " integer (" + y.size() + " binaries)");
+		logln("");
+		
+		logln("  h  |  H  |  LB  |  UB  |  Incumbent  |  Status  ");
+	}
+	
+	private void print_line(int h, int H, Status status) throws IloException {
+		log(String.format("%4" + "s |", h));
+		log(String.format("%4" + "s |", H));
+		log(String.format("%5" + "s |", (int) z.getLB()));
+		log(String.format("%5" + "s |", (int) z.getUB()));
+		
+		if(objVal > 0) log(String.format("%12.6f" + " |",  objVal));
+		else log(String.format("%12" + "s |", "-"));
+		
+		logln(String.format("%10" + "s", status));
 	}
 }
