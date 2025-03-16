@@ -23,18 +23,19 @@ public class SPOModel {
 	IloCplex model;
 	
 	// Model constants.
-	List<Integer> K;
+	List<Integer> M;
 	HashMap<Pair<Integer, Integer>, Integer> q, w;
 	HashMap<Triple, Integer> ub;
 	
 	// Model variables.
 	IloNumVar z;
-	List<IloIntVar> y;
+	List<IloIntVar> y, p;
 	HashMap<Triple, IloIntVar> x;
 	
 	// Objective Value.
 	double objVal = 0;
 	
+	// Constraint sum_y.
 	IloLinearIntExpr sum_y;
 	IloConstraint sum_y_constr = null;
 	
@@ -62,11 +63,16 @@ public class SPOModel {
 	private void buildConsts() {		
 		// Quantity of i-th item present on a-th aisle.
 		q = new HashMap<Pair<Integer, Integer>, Integer>();
-		for (int a = 0; a < inst.aisles.size(); a++) 
+		M = new ArrayList<Integer>(inst.aisles.size());
+		for (int a = 0; a < inst.aisles.size(); a++) {
+			int M_a = 0;
 			for (int i : inst.aisles.get(a).keySet()) {
 				if(inst.aisles.get(a).get(i) == 0) continue;
         		q.put(Pair.of(i, a), inst.aisles.get(a).get(i));
+        		M_a += inst.aisles.get(a).get(i);
 			}
+			M.add(a, M_a);
+		}
 		
 		// Quantity of i-th item used on o-th order.
 		w = new HashMap<Pair<Integer, Integer>, Integer>();
@@ -75,20 +81,6 @@ public class SPOModel {
 				if(inst.orders.get(o).get(i) == 0) continue;
         		w.put(Pair.of(i, o), inst.orders.get(o).get(i));
 			}
-		
-		// The reference-item for each order.
-		K = new ArrayList<Integer>(inst.orders.size());
-        for (int o = 0; o < inst.orders.size(); o++) {
-        	int min_quantity = Integer.MAX_VALUE, min_item_idx = -1;
-        	
-        	for (int i : inst.orders.get(o).keySet())
-        		if(w.get(Pair.of(i, o)) < min_quantity) {
-        			min_quantity = w.get(Pair.of(i, o));
-        			min_item_idx = i;
-        		}
-        	
-        	K.add(o, min_item_idx);
-        }
 		
 		// Upper and Lower bounds for x_i,o,a.
 		ub = new HashMap<Triple, Integer>();
@@ -107,6 +99,11 @@ public class SPOModel {
 			y = new ArrayList<IloIntVar>(inst.aisles.size());
 	        for (int a = 0; a < inst.aisles.size(); a++) 
 	            y.add(a, model.boolVar("y_" + a));
+	        
+			// 1, if a-ith aisle was visited; 0, otherwise.
+			p = new ArrayList<IloIntVar>(inst.orders.size());
+	        for (int o = 0; o < inst.orders.size(); o++) 
+	            p.add(o, model.boolVar("p_" + o));
 	        
 	        // Quantity of item i, for order o, collected on a-th aisle.
 	        x = new HashMap<Triple, IloIntVar>();
@@ -175,26 +172,19 @@ public class SPOModel {
 	        			sum_xio.addTerm(1, x.get(Triple.of(i, o, a)));
 	        		}
 	        	
-	        	model.add(model.ifThen(model.ge(sum_xio, 0.5), model.ge(y.get(a), .5)));
+	        	model.addGe(model.prod(M.get(a),  y.get(a)), sum_xio);
 	        }
 	        
 	        
 	        // ( 5 ) w_i,o * SUM x_K[o],o,a = w_K[o],o * SUM x_i,o,a
 	        for(int o = 0; o < inst.orders.size(); o++) {
 	        	for(int i : inst.orders.get(o).keySet()) {
-	        		IloLinearIntExpr sum_xl = model.linearIntExpr(), sum_xr = model.linearIntExpr();
+	        		IloLinearIntExpr sum_xa = model.linearIntExpr();
 	        		
-	        		for(int a = 0; a < inst.aisles.size(); a++) {
-	        			if(x.containsKey(Triple.of(K.get(o), o, a))) sum_xl.addTerm(1, x.get(Triple.of(K.get(o), o, a)));
-	        			if(x.containsKey(Triple.of(i, o, a))) sum_xr.addTerm(1, x.get(Triple.of(i, o, a)));
-	        		}
+	        		for(int a = 0; a < inst.aisles.size(); a++) 
+	        			if(x.containsKey(Triple.of(i, o, a))) sum_xa.addTerm(1, x.get(Triple.of(i, o, a)));
 	        		
-	        		int w_K_o = w.get(Pair.of(K.get(o), o));
-	        		int w_io  = w.get(Pair.of(i, o));
-	        		if(i == K.get(o)) 
-	        			model.add(model.or(model.eq(w_K_o, sum_xl), model.eq(0, sum_xl)));
-	        		else
-	        			model.addEq(model.prod(w_io, sum_xl), model.prod(w_K_o, sum_xr));
+	        		model.addEq(sum_xa, model.prod(w.get(Pair.of(i, o)), p.get(o)));
 	        	}
 	        }
 	        
@@ -248,12 +238,18 @@ public class SPOModel {
 						Set<Integer> orders = new HashSet<>();
 						for(int o = 0; o < inst.orders.size(); o++)
 							for(int a = 0; a < inst.aisles.size(); a++) {
-								if(!x.containsKey(Triple.of(K.get(o), o, a))) continue;
-								if(model.getValue(x.get(Triple.of(K.get(o), o, a))) > .5) {
-									orders.add(o);
-									break;
+								Boolean found = false;
+								for(int i : inst.orders.get(o).keySet()) {
+									if(!x.containsKey(Triple.of(i, o, a))) continue;
+									if(model.getValue(x.get(Triple.of(i, o, a))) > .5) {
+										orders.add(o);
+										found = true;
+										break;
+									}
 								}
+								if(found) break;
 							}
+							
 						
 						Set<Integer> aisles = new HashSet<>();
 						for(int a = 0; a < y.size(); a++) 
