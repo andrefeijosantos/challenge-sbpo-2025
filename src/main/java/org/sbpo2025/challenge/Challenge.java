@@ -24,8 +24,6 @@ public class Challenge {
         var solver = new ChallengeSolver(instance);
         ChallengeSolution solution = solver.solve(Method.SPOModel, stopWatch);
         
-        System.out.println(stopWatch);
-        
         instance.writeOutput(solution, args[1]);
     }
 }

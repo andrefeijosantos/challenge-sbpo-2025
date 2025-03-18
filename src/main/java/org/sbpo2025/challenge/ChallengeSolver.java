@@ -5,17 +5,16 @@ import org.apache.commons.lang3.time.StopWatch;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 
 enum Method {
 	SPOModel,
-	ColumnGeneration
+	BranchAndBound
 }
 
 public class ChallengeSolver {
 	
-    private final long MAX_RUNTIME = 600000; // milliseconds; 10 minutes
+    ChallengeSolution solution = null;
     private Instance inst;
 
     public ChallengeSolver(Instance instance) {
@@ -23,34 +22,29 @@ public class ChallengeSolver {
     }
 
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
-    	ChallengeSolution solution = null;
-    	
     	switch(method) {
 	    	case SPOModel:
-	        	SPOModel model = new SPOModel(this.inst);
+	        	SPOModel model = new SPOModel(this.inst, stopWatch);
 	        	model.build();
-	        	solution = model.optimize(stopWatch);
+	        	solution = model.optimize();
 	        	break;
 	        	
-	    	case ColumnGeneration:
+	    	case BranchAndBound:
 	    		break;
     	}
+    	
+    	System.out.println("Is Feasible: " + isSolutionFeasible());
+    	System.out.println("Objective Value: " + computeObjectiveFunction());
+    	System.out.println("Time: " + stopWatch);
     	
         return solution;
     }
 
-    /*
-     * Get the remaining time in seconds
-     */
-    protected long getRemainingTime(StopWatch stopWatch) {
-        return Math.max(
-                TimeUnit.SECONDS.convert(MAX_RUNTIME - stopWatch.getTime(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS),
-                0);
-    }
 
-    protected boolean isSolutionFeasible(ChallengeSolution challengeSolution) {
-        Set<Integer> selectedOrders = challengeSolution.orders();
-        Set<Integer> visitedAisles = challengeSolution.aisles();
+
+    protected boolean isSolutionFeasible() {
+        Set<Integer> selectedOrders = solution.orders();
+        Set<Integer> visitedAisles = solution.aisles();
         if (selectedOrders == null || visitedAisles == null || selectedOrders.isEmpty() || visitedAisles.isEmpty()) {
             return false;
         }
@@ -88,9 +82,9 @@ public class ChallengeSolver {
         return true;
     }
 
-    protected double computeObjectiveFunction(ChallengeSolution challengeSolution) {
-        Set<Integer> selectedOrders = challengeSolution.orders();
-        Set<Integer> visitedAisles = challengeSolution.aisles();
+    protected double computeObjectiveFunction() {
+        Set<Integer> selectedOrders = solution.orders();
+        Set<Integer> visitedAisles = solution.aisles();
         if (selectedOrders == null || visitedAisles == null || selectedOrders.isEmpty() || visitedAisles.isEmpty()) {
             return 0.0;
         }
