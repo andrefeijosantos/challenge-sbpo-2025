@@ -8,7 +8,7 @@ import java.util.Set;
 
 
 enum Method {
-	SPOModel,
+	Iterative,
 	BranchAndBound
 }
 
@@ -23,13 +23,15 @@ public class ChallengeSolver {
 
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
     	switch(method) {
-	    	case SPOModel:
+	    	case Iterative:
 	        	SPOModel model = new SPOModel(this.inst, stopWatch);
 	        	model.build();
 	        	solution = model.optimize();
 	        	break;
 	        	
 	    	case BranchAndBound:
+	    		BranchAndBound bnb = new BranchAndBound(this.inst, stopWatch);
+	    		bnb.optimize();
 	    		break;
     	}
     	
