@@ -6,40 +6,55 @@ import java.util.Stack;
 
 import org.apache.commons.lang3.time.StopWatch;
 
-public class BranchAndBound {
-	BitSet aisles;
-	int total_aisles;
-	int total_nodes = 0;
+import ilog.concert.IloException;
+
+public class BranchAndBound extends Approach {
 	
+	BnBModel model;
+	
+	// Important data structures.
 	HashMap<BitSet, Boolean> found;
+	BitSet aisles;	
 	
-	StopWatch stopWatch;
+	// Some useful data.
+	int total_nodes = 1;
+	int total_aisles;
 	
-	ChallengeSolution solution = null;
-	
-	public BranchAndBound(Instance inst, StopWatch stopWatch) {
+	public BranchAndBound(Instance inst, StopWatch stopWatch, long time_limit) {
+		super(inst, stopWatch, time_limit);
 		total_aisles = inst.aisles.size();
-		this.stopWatch = stopWatch;
 		aisles = new BitSet(total_aisles);
 		found = new HashMap<BitSet, Boolean>();
+		model = new BnBModel(inst);
 	}
 	
 	public ChallengeSolution optimize() {
 		Stack<Node> stack = new Stack<Node>();
+		model.build();
 		
 		for(int a = 0; a < total_aisles; a++) 
-			stack.add(new EnterNode(a, this));
+			stack.add(new EnterNode(a, 0, this));
 		
-		Node curr;
-		while(!stack.empty()) {
-			total_nodes++;
-			curr = stack.pop();
-			
-			curr.run();
-			curr.addChildren(stack);
+		try {
+			Node curr; double node_value;
+			while(!stack.empty()) {
+				total_nodes++;
+				curr = stack.pop();
+				
+				node_value = curr.run();
+				if(node_value > objVal) {
+					objVal = node_value;
+					solution = model.saveSolution();
+				}
+	
+				curr.addChildren(stack);
+			}
+		} catch (IloException e) {
+			e.printStackTrace();
 		}
 		
-		System.out.println("Total nodes: " + total_nodes/2 + 1);
+		System.out.println("Solution: " + objVal);
+		System.out.println("Total nodes: " + total_nodes/2 + "\n");
 		
 		return solution;
 	}

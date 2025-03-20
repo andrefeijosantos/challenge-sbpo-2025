@@ -24,14 +24,13 @@ public class ChallengeSolver {
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
     	switch(method) {
 	    	case Iterative:
-	        	SPOModel model = new SPOModel(this.inst, stopWatch);
-	        	model.build();
+	        	Iterative model = new Iterative(this.inst, stopWatch, 600000);
 	        	solution = model.optimize();
 	        	break;
 	        	
 	    	case BranchAndBound:
-	    		BranchAndBound bnb = new BranchAndBound(this.inst, stopWatch);
-	    		bnb.optimize();
+	    		BranchAndBound bnb = new BranchAndBound(this.inst, stopWatch, 600000);
+	    		solution = bnb.optimize();
 	    		break;
     	}
     	
