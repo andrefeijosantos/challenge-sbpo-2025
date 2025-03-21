@@ -7,28 +7,25 @@ import ilog.cplex.IloCplex;
 
 public class EnterNode extends Node {
 
-	public EnterNode(int aisle, int itemsParent, BranchAndBound bnb) {
-		super(aisle, itemsParent, bnb);
+	public EnterNode(int aisle, int itemsParent, double lb, BranchAndBound bnb) {
+		super(aisle, itemsParent, lb, bnb);
 	}
 
 	@Override
 	public double run() throws IloException {
+		if(algorithm.MAX_HEIGHT < algorithm.aisles.cardinality())
+			return 0;
+		
 		// Add its new aisle to the subset.
 		algorithm.aisles.set(aisle_added);
 		totalItems += algorithm.model.Q.get(aisle_added);
 
-		if(algorithm.objVal > 0) {
-			double d_lb = Math.floor(algorithm.objVal * algorithm.aisles.cardinality() + 1);
-			int    new_lb = (int) d_lb;
-			
-			if(new_lb > algorithm.inst.UB)
-				return 0;
-			
-			algorithm.model.setBounds(new_lb, algorithm.model.z.getUB());
-		}
+		// Set model bounds.
+		algorithm.model.setBounds(Math.max(Math.floor(algorithm.objVal * algorithm.aisles.cardinality() + 1), algorithm.inst.LB), 
+								  Math.min(totalItems, algorithm.inst.UB));
 		
-		
-		if(totalItems < algorithm.model.z.getLB())
+		// If a solution can not be found, return.
+		if(algorithm.model.z.getUB() < algorithm.model.z.getLB())
 			return 0;
 		
 		
@@ -36,25 +33,22 @@ public class EnterNode extends Node {
 		algorithm.model.enableAisle(aisle_added);
 		algorithm.model.solve();
 		
-		
+		// If a solution was found, return it.
 		if(algorithm.model.getStatus() == IloCplex.Status.Optimal) {
-			
-			algorithm.logln(""+algorithm.model.getObjValue() + " " + algorithm.aisles.cardinality());
-			algorithm.logln(""+algorithm.model.getObjValue()/algorithm.aisles.cardinality());
-			
-			return algorithm.model.getObjValue()/algorithm.aisles.cardinality();	
+			solutionValue = algorithm.model.getObjValue()/algorithm.aisles.cardinality();
+			return solutionValue;
 		}
-		
-		//algorithm.logln(algorithm.model.getStatus()+"");	
 		return 0;
 	}
 
 	@Override
 	public void addChildren(Stack<Node> stack) throws IloException {
 		// Add the exist of this node to the BnB stack.
-		stack.add(new ExitNode(aisle_added, totalItems, algorithm));
+		stack.add(new ExitNode(aisle_added, totalItems, solutionValue, algorithm));
 		
-		if(algorithm.model.z.getLB() > algorithm.inst.UB)
+		// If the next size of subsets cannot beat the current solution.
+		if((Math.floor(algorithm.objVal * (algorithm.aisles.cardinality() + 1) + 1) > algorithm.inst.UB)
+			|| (algorithm.MAX_HEIGHT == algorithm.aisles.cardinality()))
 			return;
 		
 		// Add its children to the BnB stack.
@@ -64,7 +58,7 @@ public class EnterNode extends Node {
 			algorithm.aisles.set(a);
 			if(!algorithm.found.containsKey(algorithm.aisles)) {
 				algorithm.found.put(algorithm.aisles, true);
-				stack.add(new EnterNode(a, totalItems, algorithm));
+				stack.add(new EnterNode(a, totalItems, solutionValue, algorithm));
 			}
 			algorithm.aisles.clear(a);
 		}

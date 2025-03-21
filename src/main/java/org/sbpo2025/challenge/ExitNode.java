@@ -4,8 +4,8 @@ import ilog.concert.IloException;
 
 public class ExitNode extends Node {
 
-	public ExitNode(int aisle, int itemsParent, BranchAndBound bnb) {
-		super(aisle, itemsParent, bnb);
+	public ExitNode(int aisle, int itemsParent, double lb, BranchAndBound bnb) {
+		super(aisle, itemsParent, lb, bnb);
 	}
 
 	@Override

@@ -20,12 +20,11 @@ public class Iterative extends Approach {
 
 	
 	public ChallengeSolution optimize() {
-		try {
-			model.build();
-			
+		try {			
 			int H = inst.aisles.size();
 			print_header();
 			
+			model.build();
 			for(int h = 1; h <= H; h++) {
 				if(getRemainingTime(stopWatch) <= 5) {
 					logln("Time Limit reached.");
@@ -68,7 +67,9 @@ public class Iterative extends Approach {
 				print_line(h, H, model.getStatus());
 			}
 			
-			System.out.println("Optimal Solution: " + objVal + "\n");
+			logln("Optimal Solution: " + objVal + "\n");
+			// logln("Number of orders: " + solution.orders().size() + "/" + mo_model.getObjValue() + "\n");
+			
 			
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -82,7 +83,7 @@ public class Iterative extends Approach {
 	// === DEBUGGING AND LOGGING METHODS ===
 	private void print_header() throws IloException {
 		logln("SPO Optimizer version 1 (Copyright André Luiz F. dos Santos, Pedro Fiorio Baldotto)");
-		// logln("Thread count: CPLEX using up to " + model.getParam(IloCplex.Param.Threads) + " threads");
+		logln("Thread count: CPLEX using up to " + Runtime.getRuntime().availableProcessors() + " threads");
 		logln("Variable types: 1 continuous; " + model.x.size() + model.y.size() + " integer (" + model.y.size() + " binaries)");
 		logln("");
 		

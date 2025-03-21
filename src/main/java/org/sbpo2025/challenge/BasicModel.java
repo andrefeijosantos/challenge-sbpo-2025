@@ -166,6 +166,14 @@ public class BasicModel {
 		model.setParam(IloCplex.Param.TimeLimit, timeLimit);
 	}
 	
+	public double getValue(IloIntVar var) throws IloException {
+		return model.getValue(var);
+	}
+	
+	public double getValue(IloNumVar var) throws IloException {
+		return model.getValue(var);
+	}
+	
 	public ChallengeSolution saveSolution() throws IloException {
 		return null;
 	}

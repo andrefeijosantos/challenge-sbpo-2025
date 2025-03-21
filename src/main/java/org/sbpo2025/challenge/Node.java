@@ -9,11 +9,15 @@ public class Node {
 	
 	protected int aisle_added;
 	protected int totalItems;
+	protected double lowerBound;
 	
-	public Node(int aisle, int itemsParent, BranchAndBound bnb) {
+	double solutionValue = 0;
+	
+	public Node(int aisle, int itemsParent, double lb, BranchAndBound bnb) {
 		aisle_added = aisle;
 		algorithm = bnb;
 		totalItems = itemsParent;
+		lowerBound = lb;
 	} 
 	
 	public double run() throws IloException {

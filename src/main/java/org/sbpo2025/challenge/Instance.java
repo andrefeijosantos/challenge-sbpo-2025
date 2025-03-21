@@ -18,6 +18,7 @@ public class Instance {
 	
     public List<Map<Integer, Integer>> orders;
     public List<Map<Integer, Integer>> aisles;
+    public List<Map<Integer, Integer>> items;
     public int LB, UB, n;
 
     public Instance(String file) {
@@ -38,6 +39,7 @@ public class Instance {
             // Initialize orders and aisles arrays
             orders = new ArrayList<>(nOrders);
             aisles = new ArrayList<>(nAisles);
+            items = new ArrayList<>(nItems);
             this.n = nItems;
 
             // Read orders
@@ -45,6 +47,7 @@ public class Instance {
 
             // Read aisles
             readItemQuantityPairs(aisles, nAisles);
+            transposeOrdersToItems();
 
             // Read wave size bounds
             line = this.reader.readLine();
@@ -112,5 +115,25 @@ public class Instance {
             System.err.println("Error writing output to " + outputFilePath);
             e.printStackTrace();
         }
+    }
+    
+    protected void transposeAislesToItems() {    	
+    	for(int i = 0; i < n; i++)
+    		items.add(i, new HashMap<Integer, Integer>());
+    	
+    	for(int a = 0; a < aisles.size(); a++) 
+    		for(int i : aisles.get(a).keySet())
+    			items.get(i).put(a, aisles.get(a).get(i));
+    	
+    	System.out.println(items);
+    }
+    
+    protected void transposeOrdersToItems() {    	
+    	for(int i = 0; i < n; i++)
+    		items.add(i, new HashMap<Integer, Integer>());
+    	
+    	for(int o = 0; o < orders.size(); o++) 
+    		for(int i : orders.get(o).keySet())
+    			items.get(i).put(o, orders.get(o).get(i));
     }
 }

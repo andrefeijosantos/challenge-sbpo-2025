@@ -13,13 +13,15 @@ import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
 import ilog.concert.IloRange;
+import ilog.cplex.IloCplex.Status;
 
 public class BnBModel extends BasicModel {
 
-	List<Map<Integer, IloRange>> constrs;
-	
-	// Model constants
+	// Model constants.
 	public List<Integer> Q;
+	
+	// Model constraints.
+	List<Map<Integer, IloRange>> constrs;
 	
 	public BnBModel(Instance inst) {
 		super(inst);
@@ -28,15 +30,12 @@ public class BnBModel extends BasicModel {
 	@Override
 	protected void buildConstsSpecific() throws IloException {
 		Q = new ArrayList<Integer>(inst.aisles.size());
-		int Q_a;
+		int Q_a = 0;
 		
 		for(int a = 0; a < inst.aisles.size(); a++) {
-			Q_a = 0;
-			
 			for(int i : inst.aisles.get(a).keySet())
 				Q_a += inst.aisles.get(a).get(i);
-			
-			Q.add(a, Q_a);
+			Q.add(a, Q_a); Q_a = 0;
 		}
 	}
 	
@@ -76,6 +75,10 @@ public class BnBModel extends BasicModel {
 			aux.get(i).setBounds(0, 0);
 	}
 	
+	public void deleteBounds() throws IloException {
+		setBounds(0, Double.MAX_VALUE);
+	}
+	
 	public void setBounds(double d, double e) throws IloException {
 		z.setLB(d); z.setUB(e);
 	}
@@ -98,5 +101,24 @@ public class BnBModel extends BasicModel {
 		}
 		
 		return new ChallengeSolution(orders, aisles);
+	}
+	
+	public Set<Integer> getRelatedOrders(int a) {
+		Set<Integer> orders = new HashSet<Integer>();
+		for(int i : inst.aisles.get(a).keySet()) 
+			for(int o : inst.items.get(i).keySet()) 
+				orders.add(o);
+		return orders;
+	}
+	
+	public Set<Integer> getOrders() throws IloException {
+		if(model.getStatus() != Status.Optimal)
+			return new HashSet<Integer>();
+		
+		Set<Integer> orders = new HashSet<Integer>();
+		for(int o = 0; o < p.size(); o++) 
+			if(model.getValue(p.get(o)) > .5) 
+				orders.add(o);		
+		return orders;
 	}
 }
