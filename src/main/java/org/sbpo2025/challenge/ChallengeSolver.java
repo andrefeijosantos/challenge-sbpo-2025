@@ -30,7 +30,7 @@ public class ChallengeSolver {
 	        	
 	    	case BranchAndBound:
 	    		BranchAndBound bnb = new BranchAndBound(this.inst, stopWatch, 600000);
-	    		solution = bnb.optimize();
+	    		solution = bnb.BeFS();
 	    		break;
     	}
     	

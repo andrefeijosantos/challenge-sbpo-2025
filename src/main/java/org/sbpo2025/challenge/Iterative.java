@@ -20,11 +20,11 @@ public class Iterative extends Approach {
 
 	
 	public ChallengeSolution optimize() {
-		try {			
-			int H = inst.aisles.size();
+		try {						
+			model.build();
 			print_header();
 			
-			model.build();
+			int H = inst.aisles.size();
 			for(int h = 1; h <= H; h++) {
 				if(getRemainingTime(stopWatch) <= 5) {
 					logln("Time Limit reached.");

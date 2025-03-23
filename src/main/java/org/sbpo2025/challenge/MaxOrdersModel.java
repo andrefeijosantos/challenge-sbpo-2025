@@ -29,17 +29,5 @@ public class MaxOrdersModel extends BasicModel {
 	        }
 	}
 	
-	protected void buildObjective() {
-		try {
-			IloLinearIntExpr sum_p = model.linearIntExpr();
-			
-			for(int o = 0; o < inst.orders.size(); o++)
-				sum_p.addTerm(1, p.get(o));
-			
-			model.addMaximize(sum_p);
-			
-		} catch(IloException e) {
-			e.printStackTrace();
-		}
-	}
+	
 }

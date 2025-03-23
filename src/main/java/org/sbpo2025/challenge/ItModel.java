@@ -82,8 +82,9 @@ public class ItModel extends BasicModel {
 	@Override
 	public ChallengeSolution saveSolution() throws IloException {
 		Set<Integer> orders = new HashSet<>();
-		for(int o = 0; o < p.size(); o++) 
-			if(model.getValue(p.get(o)) > .5) 
+		int size_o = inst.orders.size();
+		for(int o = 0; o < size_o; o++) 
+			if(model.getValue(p[o]) > .5) 
 				orders.add(o);
 		
 		Set<Integer> aisles = new HashSet<>();

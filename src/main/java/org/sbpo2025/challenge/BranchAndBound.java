@@ -2,7 +2,7 @@ package org.sbpo2025.challenge;
 
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.Stack;
+import java.util.PriorityQueue;
 
 import org.apache.commons.lang3.time.StopWatch;
 
@@ -14,62 +14,68 @@ public class BranchAndBound extends Approach {
 	
 	// Important data structures.
 	HashMap<BitSet, Boolean> found;
-	BitSet aisles;	
 	
 	// Some useful data.
-	int total_nodes = 1;
-	int total_aisles;
-	int MAX_HEIGHT;
+	int totalNodes = 1;
+	int totalAisles;
+	int MAX_AISLES;
 	
 	public BranchAndBound(Instance inst, StopWatch stopWatch, long time_limit) {
 		super(inst, stopWatch, time_limit);
 				
 		found = new HashMap<BitSet, Boolean>();
 		model = new BnBModel(inst);
-		aisles = new BitSet(total_aisles);
 		
-		total_aisles = inst.aisles.size();
-		MAX_HEIGHT = total_aisles;
+		totalAisles = inst.aisles.size();
+		MAX_AISLES = totalAisles;
 	}
 	
-	public ChallengeSolution optimize() {
+	public ChallengeSolution BeFS() {
 		try {
 			model.build();
 			print_header();
 			
-			Stack<Node> stack = new Stack<Node>();
-			for(int a = 0; a < total_aisles; a++) 
-				stack.add(new EnterNode(a, 0, 0, this));
+			// Create first-level nodes.
+			PriorityQueue<Node> queue = new PriorityQueue<Node>(new NodeComparator());
+			for(int a = 0; a < totalAisles; a++) {
+				BitSet bs = new BitSet(totalAisles); bs.set(a);
+				queue.add(new Node(bs, a, 0, 0, Math.min(model.Z[a], model.Q[a]), this));
+			}
 			
+			// Branch-and-Bound.
 			Node curr; double node_value;
-			while(!stack.empty()) {
+			while(queue.peek() != null) {
 				if(getRemainingTime(stopWatch) < 600 - 60*3)
 					break;
 					
-				curr = stack.pop();
-				total_nodes++;
-				
+				curr = queue.poll();
+				totalNodes++;
 				node_value = curr.run();
 				
+				//logln("" + curr.subset.cardinality() + " " + curr.lowerBound + " " + curr.upperBound + " " + curr.solutionItems);
+				
 				// If a better solution was found.
-				if(node_value > objVal) {
+				if(node_value > objVal && curr.solutionItems >= inst.LB) {
 					objVal = node_value;
 					solution = model.saveSolution();
 					
 					double result = inst.UB / objVal;
-					MAX_HEIGHT = (int) Math.floor(result);
-							
-					print_line(aisles.cardinality(), MAX_HEIGHT);
+					MAX_AISLES = (int) Math.floor(result);
+						
+					print_line(curr.subset.cardinality(), MAX_AISLES);
 				}
-	
-				curr.addChildren(stack);
+				else if(curr.solutionItems < inst.LB)
+					curr.addChildren(queue);
+				
+				//logln("" + queue.size());
+				
 			}
 		} catch (IloException e) {
 			e.printStackTrace();
 		}
 		
 		System.out.println("Solution: " + objVal);
-		System.out.println("Total nodes: " + total_nodes/2 + "\n");
+		System.out.println("Total nodes: " + totalNodes + "\n");
 		
 		return solution;
 	}

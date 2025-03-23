@@ -27,7 +27,7 @@ public class BasicModel {
 	
 	// Model variables.
 	public IloNumVar z;
-	public List<IloIntVar> p;
+	public IloIntVar[] p;
 	public List<Map<Pair<Integer, Integer>, IloIntVar>> x;
 	
 	
@@ -70,9 +70,9 @@ public class BasicModel {
 			Integer val;
 	        
 			// 1, if o-ith orders was built; 0, otherwise.
-			p = new ArrayList<IloIntVar>(inst.orders.size());
+			p = new IloIntVar[inst.orders.size()];
 	        for (int o = 0; o < inst.orders.size(); o++) 
-	            p.add(o, model.boolVar("p_" + o));
+	            p[o] = model.boolVar("p_" + o);
 	        
 	        // Quantity of item i, for order o, collected on a-th aisle.
 	        x = new ArrayList<Map<Pair<Integer, Integer>, IloIntVar>>(inst.orders.size());
@@ -135,7 +135,7 @@ public class BasicModel {
 	        			if(var != null) sum_xa.addTerm(1, var);
 	        		}
 	        		
-	        		model.addEq(sum_xa, model.prod(w.get(o).get(i), p.get(o)));
+	        		model.addEq(sum_xa, model.prod(w.get(o).get(i), p[o]));
 	        	}
 	        }
 	        
