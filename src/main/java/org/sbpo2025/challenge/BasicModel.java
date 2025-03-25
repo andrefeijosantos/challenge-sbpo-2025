@@ -1,11 +1,7 @@
 package org.sbpo2025.challenge;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.lang3.tuple.Pair;
 
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
@@ -28,7 +24,6 @@ public class BasicModel {
 	// Model variables.
 	public IloNumVar z;
 	public IloIntVar[] p;
-	public List<Map<Pair<Integer, Integer>, IloIntVar>> x;
 	
 	
 	public BasicModel(Instance inst) {
@@ -67,26 +62,10 @@ public class BasicModel {
 	
 	protected void buildVars() {
 		try {	
-			Integer val;
-	        
 			// 1, if o-ith orders was built; 0, otherwise.
 			p = new IloIntVar[inst.orders.size()];
 	        for (int o = 0; o < inst.orders.size(); o++) 
 	            p[o] = model.boolVar("p_" + o);
-	        
-	        // Quantity of item i, for order o, collected on a-th aisle.
-	        x = new ArrayList<Map<Pair<Integer, Integer>, IloIntVar>>(inst.orders.size());
-	        for (int o = 0; o < inst.orders.size(); o++) {
-	        	
-	        	x.add(o, new HashMap<Pair<Integer, Integer>, IloIntVar>());
-	        	for (int i : inst.orders.get(o).keySet())
-	        		for (int a = 0; a < inst.aisles.size(); a++) {
-	        			val = q.get(a).get(i);
-	        			if(val != null)
-	        				x.get(o).put(Pair.of(i, a), model.intVar(0, Math.min(w.get(o).get(i), val), 
-	        						"x_" + i + "_" + o + "_" + a));
-	        		}
-	        }
 	        
 	        // Quantity of collected items.
 	        z = model.numVar(inst.LB, inst.UB, "z");
@@ -109,46 +88,22 @@ public class BasicModel {
 		}
 	}
 	
-	private void buildConstrs() {
-		try {			
-			IloIntVar var;
-			
-	        // ( 1 ) z = SUM SUM SUM x_i,o,a
-			IloLinearIntExpr sum_xioa = model.linearIntExpr();
-			for (int o = 0; o < inst.orders.size(); o++)
-				for (int i : inst.orders.get(o).keySet()) 
-	        		for (int a = 0; a < inst.aisles.size(); a++) {
-	        			var = x.get(o).get(Pair.of(i, a));
-	        			if(var != null) sum_xioa.addTerm(1, var);
-	        		}
-	        
-	        model.addEq(z, sum_xioa); 
-
-	        	        	        
-	        // ( 5 ) SUM x_i,o,a = w_i,o * p_o
-	        for(int o = 0; o < inst.orders.size(); o++) {
-	        	for(int i : inst.orders.get(o).keySet()) {
-	        		IloLinearIntExpr sum_xa = model.linearIntExpr();
-	        		
-	        		for(int a = 0; a < inst.aisles.size(); a++) {
-	        			var = x.get(o).get(Pair.of(i, a));
-	        			if(var != null) sum_xa.addTerm(1, var);
-	        		}
-	        		
-	        		model.addEq(sum_xa, model.prod(w.get(o).get(i), p[o]));
-	        	}
-	        }
-	        
-			
-		} catch(IloException e) {
-			e.printStackTrace();
+	protected void buildConstrs() throws IloException {
+		IloLinearIntExpr sumItems = model.linearIntExpr();
+		int totalItems = 0;
+		for(int o = 0; o < inst.orders.size(); o++) {
+			for(int i : inst.orders.get(o).keySet())
+				totalItems += w.get(o).get(i);
+			sumItems.addTerm(totalItems, p[o]); 
+			totalItems = 0;
 		}
+		
+		model.addEq(z, sumItems);
 	}
 	
 	protected void buildConstrsSpecific() throws IloException {
 		return;
 	}
-	
 	
 	public void solve() throws IloException {
 		model.solve();

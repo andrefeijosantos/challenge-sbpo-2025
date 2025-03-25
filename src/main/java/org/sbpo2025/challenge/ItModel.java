@@ -1,11 +1,7 @@
 package org.sbpo2025.challenge;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
-import org.apache.commons.lang3.tuple.Pair;
 
 import ilog.concert.IloConstraint;
 import ilog.concert.IloException;
@@ -15,8 +11,11 @@ import ilog.concert.IloLinearIntExpr;
 
 public class ItModel extends BasicModel {
 
+	// Model constants.
+	public int[] Q;
+	
 	// Model variables.
-	List<IloIntVar> y;
+	IloIntVar[] y;
 	
 	// Constraint sum_y.
 	IloLinearIntExpr sum_y;
@@ -25,49 +24,43 @@ public class ItModel extends BasicModel {
 	public ItModel(Instance inst) {
 		super(inst);
 	}
-
+	
 	@Override
-	protected void buildVarsSpecific() throws IloException {
+	protected void buildVarsSpecific() throws IloException {		
 		// 1, if a-ith aisle was visited; 0, otherwise.
-		y = new ArrayList<IloIntVar>(inst.aisles.size());
+		y = new IloIntVar[inst.aisles.size()];
         for (int a = 0; a < inst.aisles.size(); a++) 
-            y.add(a, model.boolVar("y_" + a));
+            y[a] = model.boolVar("y_" + a);
 	}
 	
 	@Override
 	protected void buildConstrsSpecific() throws IloException {
-		IloIntVar var;
+		Integer value; 
 		
         // ( 2 ) SUM y_a = NUM_AISLES
         sum_y = model.linearIntExpr();
-        for(int a = 0; a < y.size(); a++) 
-        	sum_y.addTerm(1, y.get(a));
+        for(int a = 0; a < y.length; a++) 
+        	sum_y.addTerm(1, y[a]);
         
         
-        // ( 3 ) SUM SUM x_i,o,a <= q_i,a
-        for (int a = 0; a < inst.aisles.size(); a++) 
-	        for (int i : inst.aisles.get(a).keySet()) {
-	        	IloLinearIntExpr sum_xo = model.linearIntExpr();
-	        	for (int o = 0; o < inst.orders.size(); o++) {
-	        		var = x.get(o).get(Pair.of(i, a));
-	        		if(var != null) sum_xo.addTerm(1, var);
-	        	}
-	        	
-	        	model.addLe(sum_xo, q.get(a).get(i));
-	        }
-        
-        
-        // ( 4 ) SUM SUM x_i,o,a >= 1 -> y_a = 1 
-        for(int a = 0; a < inst.aisles.size(); a++) {
-        	IloLinearIntExpr sum_xio = model.linearIntExpr();
-        	for(int o = 0; o < inst.orders.size(); o++) 
-        		for (int i : inst.orders.get(o).keySet()) {
-        			var = x.get(o).get(Pair.of(i, a));
-        			if(var != null) sum_xio.addTerm(1, var);
-        		}
+        // ( 3 ) SUM w_i,o x p_o <= SUM q_i,a * y_a  	
+        for (int i = 0; i < inst.n; i++) {
+        	IloLinearIntExpr sumOrders = model.linearIntExpr();
+        	for (int o : inst.items.get(i).keySet())
+        		sumOrders.addTerm(w.get(o).get(i), p[o]);
         	
-        	model.add(model.ifThen(model.ge(sum_xio, 0.5), model.eq(y.get(a), 1)));
+        	IloLinearIntExpr sumAisles = model.linearIntExpr();
+        	for(int a = 0; a < inst.aisles.size(); a++) {
+        		value = q.get(a).get(i);
+        		if(value != null)
+        			sumAisles.addTerm(q.get(a).get(i), y[a]);
+        	}
+
+        	model.addLe(sumOrders, sumAisles);
         }
+        
+        z.setLB(inst.LB);
+        z.setUB(inst.UB);
 	}
 	
 	public void setSumY(int NUM_AISLES) throws IloException {
@@ -79,6 +72,10 @@ public class ItModel extends BasicModel {
 		z.setLB(lb);
 	}
 	
+	public void setUB(int ub) throws IloException {
+		z.setUB(ub);
+	}
+	
 	@Override
 	public ChallengeSolution saveSolution() throws IloException {
 		Set<Integer> orders = new HashSet<>();
@@ -88,8 +85,8 @@ public class ItModel extends BasicModel {
 				orders.add(o);
 		
 		Set<Integer> aisles = new HashSet<>();
-		for(int a = 0; a < y.size(); a++) 
-			if(model.getValue(y.get(a)) > .5) 
+		for(int a = 0; a < y.length; a++) 
+			if(model.getValue(y[a]) > .5) 
 				aisles.add(a);
 		
 		return new ChallengeSolution(orders, aisles);

@@ -20,7 +20,7 @@ public class Iterative extends Approach {
 
 	
 	public ChallengeSolution optimize() {
-		try {						
+		try {					
 			model.build();
 			print_header();
 			
@@ -31,22 +31,11 @@ public class Iterative extends Approach {
 					break;
 				}
 				
-				// Sets the number of aisles to the model.
+				// Set parameters for running the model for h aisles..
+				model.setTimeLimit(getRemainingTime(stopWatch));
 				model.setSumY(h);
 				
-				// Sets the Lower Bound.
-				if(solution != null) {
-					double d_lb = Math.floor(objVal * h + 1);
-					int    new_lb = (int) d_lb;
-					
-					if(new_lb > inst.UB)
-						break;
-					
-					model.setLB(new_lb);
-				}
-				
 				// Optimizes model for "num_aisles" aisles.
-				model.setTimeLimit(getRemainingTime(stopWatch));
 				model.solve();
 				
 				if(model.getStatus() == IloCplex.Status.Optimal) {					
@@ -59,17 +48,19 @@ public class Iterative extends Approach {
 						double result = inst.UB / objVal;
 						H = (int) Math.floor(result);
 					}
-					
-					if(model.getObjValue() == inst.UB)
-						break;
 				}
 				
 				print_line(h, H, model.getStatus());
+				
+				// Sets the Lower Bound.
+				if(solution != null) {
+					int new_lb = (int) Math.floor(objVal * h + 1);
+					if(new_lb > inst.UB) break;
+					model.setLB(new_lb);
+				}
 			}
 			
 			logln("Optimal Solution: " + objVal + "\n");
-			// logln("Number of orders: " + solution.orders().size() + "/" + mo_model.getObjValue() + "\n");
-			
 			
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -84,7 +75,7 @@ public class Iterative extends Approach {
 	private void print_header() throws IloException {
 		logln("SPO Optimizer version 1 (Copyright André Luiz F. dos Santos, Pedro Fiorio Baldotto)");
 		logln("Thread count: CPLEX using up to " + Runtime.getRuntime().availableProcessors() + " threads");
-		logln("Variable types: 1 continuous; " + model.x.size() + model.y.size() + " integer (" + model.y.size() + " binaries)");
+		logln("Variable types: 1 continuous; " + model.y.length + model.p.length + " integer (" + model.y.length + model.p.length + " binaries)");
 		logln("");
 		
 		logln("  h  |  H  |  LB  |  UB  |  Incumbent  |  Status  ");
