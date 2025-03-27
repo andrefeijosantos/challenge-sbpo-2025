@@ -34,6 +34,8 @@ public class BasicModel {
 		// Building CPLEX model.
 		try {			
 			model = new IloCplex();
+			
+			// Set model parameters.
 			model.setParam(IloCplex.Param.MIP.Display, 0);
 			model.setOut(null);
 			
@@ -41,9 +43,11 @@ public class BasicModel {
 			buildConstsSpecific();
 			buildVars();
 			buildVarsSpecific();
-			buildObjective();	
 			buildConstrs();
 			buildConstrsSpecific();
+			buildObjective();	
+			
+			buildSpecific();
 			
 		} catch(IloException e) {
 			System.out.print("No model built. Error: ");
@@ -105,6 +109,10 @@ public class BasicModel {
 		return;
 	}
 	
+	protected void buildSpecific() throws IloException {
+		return;
+	}
+	
 	public void solve() throws IloException {
 		model.solve();
 	}
@@ -127,6 +135,10 @@ public class BasicModel {
 	
 	public double getValue(IloNumVar var) throws IloException {
 		return model.getValue(var);
+	}
+	
+	public int getNumThreads() throws IloException {
+		return model.getParam(IloCplex.Param.Threads);
 	}
 	
 	public ChallengeSolution saveSolution() throws IloException {
