@@ -3,38 +3,28 @@ package org.sbpo2025.challenge;
 import java.util.HashSet;
 import java.util.Set;
 
-import ilog.concert.IloConstraint;
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
-import ilog.cplex.IloCplex;
+import ilog.concert.IloRange;
 
 
-public class ItModel extends BasicModel {
+public class MinItemsModel extends BasicModel {
 
-	// CPLEX configuration
-	int numThreads;
+	// Model constants.
+	public int[] Q;
 	
 	// Model variables.
 	IloIntVar[] y;
 	
 	// Constraint sumY.
 	IloLinearIntExpr sumY;
-	IloConstraint sumYConstr = null;
 	
-	public ItModel(Instance inst, int threads) {
+	IloLinearIntExpr sumP = null;
+	IloRange sumPConstr = null;
+	
+	public MinItemsModel(Instance inst) {
 		super(inst);
-		
-		numThreads = threads;
-	}
-	
-	@Override
-	protected void buildSpecific() {
-		try {
-			model.setParam(IloCplex.Param.Threads, numThreads);
-		} catch(IloException e) {
-			e.printStackTrace();
-		}
 	}
 	
 	@Override
@@ -71,13 +61,26 @@ public class ItModel extends BasicModel {
         	model.addLe(sumOrders, sumAisles);
         }
         
+        sumP = model.linearIntExpr();
+        for(int o = 0; o < inst.orders.size(); o++) 
+        	sumP.addTerm(1, p[o]);
+        
         z.setLB(inst.LB);
         z.setUB(inst.UB);
 	}
 	
-	public void setSumY(int NUM_AISLES) throws IloException {
-		if(sumYConstr != null) model.delete(sumYConstr);
-		sumYConstr = model.addEq(sumY, NUM_AISLES);
+	protected void buildObjective() {
+		try {
+			model.addMinimize(z);
+			
+		} catch(IloException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void setPBounds(int min, int max) throws IloException {
+		if(sumPConstr != null) model.delete(sumPConstr);
+		sumPConstr = model.addRange(min, sumP, max);
 	}
 	
 	public void setLB(int lb) throws IloException {

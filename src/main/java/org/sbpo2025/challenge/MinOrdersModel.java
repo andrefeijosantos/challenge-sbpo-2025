@@ -4,12 +4,12 @@ import ilog.concert.IloException;
 import ilog.concert.IloLinearIntExpr;
 import ilog.concert.IloRange;
 
-public class MaxOrdersModel extends BasicModel {
+public class MinOrdersModel extends BasicModel {
 
 	// Model constants.
 	public int[] Z;
 	
-	public MaxOrdersModel(Instance inst) {
+	public MinOrdersModel(Instance inst) {
 		super(inst);
 	}
 	
@@ -47,10 +47,18 @@ public class MaxOrdersModel extends BasicModel {
 			for(int o = 0; o < inst.orders.size(); o++)
 				sumP.addTerm(1, p[o]);
 			
-			model.addMaximize(sumP);
+			model.addMinimize(sumP);
 			
 		} catch(IloException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void setLB(int lb) throws IloException {
+		z.setLB(lb);
+	}
+	
+	public void setUB(int ub) throws IloException {
+		z.setUB(ub);
 	}
 }

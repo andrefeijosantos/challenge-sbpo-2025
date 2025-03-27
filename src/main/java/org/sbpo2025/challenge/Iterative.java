@@ -12,64 +12,53 @@ public class Iterative extends Approach {
 	// CPLEX model.
 	ItModel model;
 	
-	
 	public Iterative(Instance inst, StopWatch stopWatch, long time_limit) {
 		super(inst, stopWatch, time_limit);
-		this.model = new ItModel(inst);
+		this.model = new ItModel(inst, 5);
 	}
 
 	
 	public ChallengeSolution optimize() {
-		try {			
-			int H = inst.aisles.size();
+		try {		
+			model.build();			
 			print_header();
 			
-			model.build();
+			
+			int H = inst.aisles.size();
 			for(int h = 1; h <= H; h++) {
 				if(getRemainingTime(stopWatch) <= 5) {
 					logln("Time Limit reached.");
 					break;
 				}
 				
-				// Sets the number of aisles to the model.
-				model.setSumY(h);
-				
 				// Sets the Lower Bound.
 				if(solution != null) {
-					double d_lb = Math.floor(objVal * h + 1);
-					int    new_lb = (int) d_lb;
-					
-					if(new_lb > inst.UB)
-						break;
-					
+					int new_lb = (int) Math.floor(objVal * h + 1);
+					if(new_lb > inst.UB) break;
 					model.setLB(new_lb);
 				}
 				
-				// Optimizes model for "num_aisles" aisles.
+				// Set parameters for running the model for h aisles..
 				model.setTimeLimit(getRemainingTime(stopWatch));
+				model.setSumY(h);
+				
+				// Optimizes model for "num_aisles" aisles.
 				model.solve();
 				
-				if(model.getStatus() == IloCplex.Status.Optimal) {					
-					// If a better solution was found.
-					if(model.getObjValue()/h > objVal) {
-						objVal = model.getObjValue()/h;
-						solution = model.saveSolution();
-						
-						// Update max_aisles.
-						double result = inst.UB / objVal;
-						H = (int) Math.floor(result);
-					}
+				// If a better solution was found.
+				if(model.getStatus() != IloCplex.Status.Infeasible && model.getObjValue()/h > objVal) {					
+					objVal = model.getObjValue()/h;
+					solution = model.saveSolution();
 					
-					if(model.getObjValue() == inst.UB)
-						break;
+					// Update max_aisles.
+					double result = inst.UB / objVal;
+					H = (int) Math.floor(result);
 				}
 				
 				print_line(h, H, model.getStatus());
 			}
 			
 			logln("Optimal Solution: " + objVal + "\n");
-			// logln("Number of orders: " + solution.orders().size() + "/" + mo_model.getObjValue() + "\n");
-			
 			
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -83,8 +72,8 @@ public class Iterative extends Approach {
 	// === DEBUGGING AND LOGGING METHODS ===
 	private void print_header() throws IloException {
 		logln("SPO Optimizer version 1 (Copyright André Luiz F. dos Santos, Pedro Fiorio Baldotto)");
-		logln("Thread count: CPLEX using up to " + Runtime.getRuntime().availableProcessors() + " threads");
-		logln("Variable types: 1 continuous; " + model.x.size() + model.y.size() + " integer (" + model.y.size() + " binaries)");
+		logln("Thread count: CPLEX using up to " + model.getNumThreads() + " threads");
+		logln("Variable types: 1 continuous; " + (model.y.length + model.p.length) + " integer (" + (model.y.length + model.p.length) + " binaries)");
 		logln("");
 		
 		logln("  h  |  H  |  LB  |  UB  |  Incumbent  |  Status  ");
