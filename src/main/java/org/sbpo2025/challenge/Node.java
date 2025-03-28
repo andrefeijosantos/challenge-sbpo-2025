@@ -1,12 +1,11 @@
 package org.sbpo2025.challenge;
 
 import java.util.BitSet;
-import java.util.HashSet;
 import java.util.PriorityQueue;
-import java.util.Set;
+import java.util.Queue;
+import java.util.Stack;
 
 import ilog.concert.IloException;
-import ilog.cplex.IloCplex.Status;
 
 public class Node {
 	protected BranchAndBound algorithm;
@@ -15,27 +14,29 @@ public class Node {
 	protected BitSet subset;
 	
 	protected int aisleAdded;
+	protected int height;
 	
 	double solutionValue = 0;
 	double solutionItems = 0;
 	
-	protected double lowerBound;
-	protected double upperBound;
+	protected double lowerBound = 0;
+	protected double upperBound = Double.MAX_VALUE;
 	
-	int[] numItems;
-	int height;
+	protected double lowerBoundItems;
+	protected double upperBoundItems;
 	
 	
-	public Node(BitSet bs, BitSet tabu, int aisle, double lb, double ub, int h, BranchAndBound bnb) {
+	public Node(BitSet bs, BitSet tabu, int aisle, int h, double lbItems, double ubItems, BranchAndBound bnb) {
 		algorithm = bnb;
 		
 		subset = bs;
 	    notAllowed = tabu;
 		
 		aisleAdded = aisle;
-		upperBound = ub;
-		lowerBound = lb;
 		height = h;
+		
+		lowerBoundItems = lbItems;
+		upperBoundItems = ubItems;
 		
 		if(eq(lowerBound, upperBound) || aisle == -1) {
 			solutionValue = lowerBound;
@@ -43,57 +44,62 @@ public class Node {
 		}
 	} 
 	
-	// Esse aqui é para quando temos o double, que é do arco da velha.
 	private boolean eq(double d1, double d2) {
 		return Math.abs(d1 - d2) <= 0.00001;
 	}
 	
-	public double run() throws IloException {
-		if(subset.cardinality() < algorithm.MIN_AISLES || subset.cardinality() > algorithm.MAX_AISLES || solutionValue > 0) 
-			return 0;
-		
-		// Set model bounds.
-		algorithm.model.setBounds(lowerBound*subset.cardinality(), Math.min(upperBound*subset.cardinality(), algorithm.inst.UB));
-		
-		// Add its new aisle to the subset.
-		algorithm.model.resetItemAmounts();
-		for(int a = 0; a < algorithm.totalAisles; a++) {
-			if(!subset.get(a)) continue;
-			
-			for(int i : algorithm.inst.aisles.get(a).keySet())
-				algorithm.model.addItemAmount(i, algorithm.model.q.get(a).get(i));
-		}		
-		
-		// Execute model's optimization.
-		algorithm.model.setBounds(algorithm.inst.LB, algorithm.inst.UB);
-		algorithm.model.solve();
-		
-		// If a solution was found, return it.
-		if(algorithm.model.getStatus() != Status.Infeasible) {
-			solutionItems = algorithm.model.getObjValue();
-			solutionValue = solutionItems/subset.cardinality();
-			return solutionValue;
-		}
-		
-		solutionItems = 0;
-		solutionValue = 0;
+	public double process() {
 		return 0;
 	}
 	
 	public void branch(PriorityQueue<Node> queue) throws IloException {	
-		// If the next size of subsets cannot beat the current solution.
-		if((Math.floor(algorithm.objVal * (subset.cardinality() + 1) + 1) > algorithm.inst.UB)
-			|| (algorithm.MAX_AISLES <= subset.cardinality()) || (height >= algorithm.totalAisles))
+		if(height >= algorithm.TOTAL_AISLES ||
+		   subset.cardinality() >= algorithm.MAX_AISLES ||
+		   (algorithm.TOTAL_AISLES - notAllowed.cardinality() <= algorithm.MIN_AISLES)) 
 			return;
 		
 		Node lChild = getLeftChild();
 		Node rChild = getRightChild();
 
-		if(lChild.upperBound >= algorithm.objVal)
+		if(lChild.upperBound > algorithm.objVal)
 			queue.add(lChild);
 		
+		if(rChild.upperBound > algorithm.objVal)
+			queue.add(rChild);
+	}
+	
+	public void branch(Stack<Node> stack) throws IloException {	
+		if(height >= algorithm.TOTAL_AISLES ||
+		   subset.cardinality() >= algorithm.MAX_AISLES) 
+			return;
+		//if(Math.floor(algorithm.objVal * (subset.cardinality() + 1) + 1) > algorithm.inst.UB)
+			//return;
+		
+		Node lChild = getLeftChild();
+		Node rChild = getRightChild();
+
+		if(rChild.upperBound >= algorithm.objVal)
+			stack.add(rChild);
+		
+		if(lChild.upperBound >= algorithm.objVal)
+			stack.add(lChild);
+	}
+	
+	public void branch(Queue<Node> queue) throws IloException {	
+		if(height >= algorithm.TOTAL_AISLES ||
+		   subset.cardinality() >= algorithm.MAX_AISLES) 
+			return;
+		//if(Math.floor(algorithm.objVal * (subset.cardinality() + 1) + 1) > algorithm.inst.UB)
+			//return;
+		
+		Node lChild = getLeftChild();
+		Node rChild = getRightChild();
+
 		if(rChild.upperBound >= algorithm.objVal)
 			queue.add(rChild);
+		
+		if(lChild.upperBound >= algorithm.objVal)
+			queue.add(lChild);
 	}
 	
 	protected Node getLeftChild() {
@@ -103,8 +109,7 @@ public class Node {
 		BitSet bs = (BitSet) subset.clone();
 		bs.set(idx);
 		
-		int num = Math.max(1, subset.cardinality());
-		return new Node(bs, tabu, idx, solutionItems/(subset.cardinality()+1), (upperBound*num)/(subset.cardinality()+1), height+1, algorithm);
+		return new LNode(bs, tabu, idx, height+1, lowerBoundItems, upperBoundItems, algorithm);
 	}
 	
 	protected Node getRightChild() {
@@ -114,46 +119,19 @@ public class Node {
 		BitSet tabu = (BitSet) notAllowed.clone();
 		tabu.set(idx);
 		
-		numItems = new int[algorithm.inst.n];
-		for(int i = 0; i < algorithm.model.Z.length; i++) 
-			numItems[i] = algorithm.model.Z[i];
-		
-		for(int a = 0; a < algorithm.inst.aisles.size(); a++) 
-			if(tabu.get(a)) 
-				for(int i : algorithm.inst.aisles.get(a).keySet()) 
-					numItems[i] -= algorithm.inst.aisles.get(a).get(i);
-
-		
-		double ubItems = 0, totalOrders = 0;
-		for(int o = 0; o < algorithm.inst.orders.size(); o++) {
-			if(totalOrders == algorithm.MAX_ORDERS) break;
-			if(!notBuildable(o)) {
-				ubItems += algorithm.model.sortedOrders.get(o).getRight();
-				totalOrders++;
-			}
-		}
-		ubItems = Math.min(ubItems, algorithm.inst.UB);
-		
-		return new Node(bs, tabu, -1, solutionValue, ubItems/(subset.cardinality()+1), height+1, algorithm);
-	}
-	
-	private boolean notBuildable(int order) {
-		for(int i : algorithm.inst.orders.get(order).keySet()) 
-			if(algorithm.inst.orders.get(order).get(i) < numItems[i])
-				return true;
-		return false;
+		return new RNode(bs, tabu, -1, height+1, lowerBoundItems, upperBoundItems, algorithm);
 	}
 	
 	@Override
 	public String toString() {
 		String str = "Subset:      ";
-		for(int a = 0; a < algorithm.totalAisles; a++) {
+		for(int a = 0; a < algorithm.TOTAL_AISLES; a++) {
 			if(subset.get(a)) str += "1";
 			else str += "0";
 		}
 		str += "\n";
 		str += "Not allowed: ";
-		for(int a = 0; a < algorithm.totalAisles; a++) {
+		for(int a = 0; a < algorithm.TOTAL_AISLES; a++) {
 			if(notAllowed.get(a)) str += "1";
 			else str += "0";
 		}
@@ -161,12 +139,6 @@ public class Node {
 	}
 	
 	public ChallengeSolution getSolution() throws IloException {
-		Set<Integer> orders = algorithm.model.getOrders();
-		
-		Set<Integer> aisles = new HashSet<Integer>();
-		for(int a = 0; a < algorithm.inst.aisles.size(); a++)
-			if(subset.get(a)) aisles.add(a);
-		
-		return new ChallengeSolution(orders, aisles);
+		return null;
 	}
 }

@@ -1,10 +1,11 @@
 package org.sbpo2025.challenge;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.time.StopWatch;
 
 import ilog.concert.*;
 import ilog.cplex.*;
-import ilog.cplex.IloCplex.Status;
 
 
 public class Iterative extends Approach {
@@ -12,9 +13,19 @@ public class Iterative extends Approach {
 	// CPLEX model.
 	ItModel model;
 	
-	public Iterative(Instance inst, StopWatch stopWatch, long time_limit) {
-		super(inst, stopWatch, time_limit);
-		this.model = new ItModel(inst, 5);
+	// Solver informations.
+	boolean optimal = true;
+	int MIN_AISLES;
+	int MAX_AISLES;
+	
+	// Some other data.
+	int dummySolutionTime;
+	
+	public Iterative(Instance inst, StopWatch stopWatch, long timeLimit, int dummyTime) {
+		super(inst, stopWatch, timeLimit);
+		this.model = new ItModel(inst, 10);
+		this.MAX_AISLES = inst.aisles.size();
+		this.dummySolutionTime = dummyTime;
 	}
 
 	
@@ -24,10 +35,33 @@ public class Iterative extends Approach {
 			print_header();
 			
 			
-			int H = inst.aisles.size();
-			for(int h = 1; h <= H; h++) {
+			for(; MAX_AISLES >= 0; MAX_AISLES--) {
+				if(getRemainingDummyTime(stopWatch) <= 5) {
+					logln("Time Limit for dummy solutions reached.\n");
+					break;
+				}
+				
+				// Set parameters for running the model for h aisles..
+				model.setTimeLimit(getRemainingDummyTime(stopWatch));
+				model.setSumY(MAX_AISLES);
+				
+				// Optimizes model for "num_aisles" aisles.
+				model.solve();
+				
+				// If a better solution was found.
+				if((model.getStatus() == IloCplex.Status.Feasible || model.getStatus() == IloCplex.Status.Optimal) && model.getObjValue()/MAX_AISLES > objVal) {					
+					objVal = model.getObjValue()/MAX_AISLES;
+					solution = model.saveSolution();
+				}
+				
+				print_line(MAX_AISLES);
+			}
+			
+			
+			for(int h = 1; h <= MAX_AISLES; h++) {
 				if(getRemainingTime(stopWatch) <= 5) {
 					logln("Time Limit reached.");
+					optimal = false;
 					break;
 				}
 				
@@ -35,8 +69,9 @@ public class Iterative extends Approach {
 				if(solution != null) {
 					int new_lb = (int) Math.floor(objVal * h + 1);
 					if(new_lb > inst.UB) break;
-					model.setLB(new_lb);
-				}
+					model.setLB(Math.max(inst.LB, new_lb));
+				} else 
+					MIN_AISLES = h;
 				
 				// Set parameters for running the model for h aisles..
 				model.setTimeLimit(getRemainingTime(stopWatch));
@@ -46,19 +81,21 @@ public class Iterative extends Approach {
 				model.solve();
 				
 				// If a better solution was found.
-				if(model.getStatus() != IloCplex.Status.Infeasible && model.getObjValue()/h > objVal) {					
+				if((model.getStatus() == IloCplex.Status.Feasible || model.getStatus() == IloCplex.Status.Optimal) && model.getObjValue()/h > objVal) {					
 					objVal = model.getObjValue()/h;
 					solution = model.saveSolution();
 					
 					// Update max_aisles.
 					double result = inst.UB / objVal;
-					H = (int) Math.floor(result);
+					MAX_AISLES = (int) Math.floor(result);
 				}
 				
-				print_line(h, H, model.getStatus());
+				print_line(h);
 			}
 			
-			logln("Optimal Solution: " + objVal + "\n");
+			
+			logln("Solution found: " + objVal);
+			logln("Optimal: " + optimal + "\n");
 			
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -67,7 +104,9 @@ public class Iterative extends Approach {
 		return solution;
 	}
 	
-	
+	protected long getRemainingDummyTime(StopWatch stopWatch) {
+        return Math.max(TimeUnit.SECONDS.convert(dummySolutionTime - stopWatch.getTime(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS), 0);
+    }
 	
 	// === DEBUGGING AND LOGGING METHODS ===
 	private void print_header() throws IloException {
@@ -79,15 +118,19 @@ public class Iterative extends Approach {
 		logln("  h  |  H  |  LB  |  UB  |  Incumbent  |  Status  ");
 	}
 	
-	private void print_line(int h, int H, Status status) throws IloException {
+	private void print_line(int h) throws IloException {
 		log(String.format("%4" + "s |", h));
-		log(String.format("%4" + "s |", H));
+		log(String.format("%4" + "s |", MAX_AISLES));
 		log(String.format("%5" + "s |", (int) model.z.getLB()));
 		log(String.format("%5" + "s |", (int) model.z.getUB()));
 		
 		if(objVal > 0) log(String.format("%12.6f" + " |",  objVal));
 		else log(String.format("%12" + "s |", "-"));
 		
-		logln(String.format("%10" + "s", status));
+		logln(String.format("%10" + "s", model.getStatus()));
+	}
+	
+	public boolean isOptimal() {
+		return optimal;
 	}
 }

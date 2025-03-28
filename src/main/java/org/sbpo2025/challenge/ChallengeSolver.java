@@ -9,7 +9,8 @@ import java.util.Set;
 
 enum Method {
 	Iterative,
-	BranchAndBound
+	BranchAndBound,
+	ItBnB
 }
 
 public class ChallengeSolver {
@@ -24,14 +25,29 @@ public class ChallengeSolver {
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
     	switch(method) {
 	    	case Iterative:
-	        	Iterative model = new Iterative(this.inst, stopWatch, 600000);
-	        	solution = model.optimize();
+	        	Iterative itModel = new Iterative(this.inst, stopWatch, 600000, 30000);
+	        	solution = itModel.optimize();
 	        	break;
 	        	
 	    	case BranchAndBound:
-	    		BranchAndBound bnb = new BranchAndBound(this.inst, stopWatch, 600000);
-	    		solution = bnb.BeFS();
+	    		BranchAndBound bnbModel = new BranchAndBound(this.inst, stopWatch, 600000);
+	    		solution = bnbModel.DFS();
 	    		break;
+	    		
+	    	case ItBnB:
+	        	Iterative itModel2 = new Iterative(this.inst, stopWatch, 180000, 30000);
+	        	solution = itModel2.optimize();
+	        	
+	        	if(!itModel2.isOptimal()) {
+		    		BranchAndBound bnbModel2 = new BranchAndBound(this.inst, stopWatch, 413000, itModel2.MIN_AISLES, 
+		    				                                      itModel2.MAX_AISLES, itModel2.objVal);
+		    		
+		    		ChallengeSolution bnbSol;
+		    		bnbSol = bnbModel2.DFS();
+		    		solution = bnbSol != null? bnbSol : solution;
+	        	}
+	        	
+	        	break;
     	}
     	
     	System.out.println("Is Feasible: " + isSolutionFeasible());
