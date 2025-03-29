@@ -20,10 +20,11 @@ public class Iterative extends Approach {
 	
 	// Some other data.
 	int dummySolutionTime;
+	boolean solutionFound = false;
 	
 	public Iterative(Instance inst, StopWatch stopWatch, long timeLimit, int dummyTime) {
 		super(inst, stopWatch, timeLimit);
-		this.model = new ItModel(inst, 10);
+		this.model = new ItModel(inst, 20);
 		this.MAX_AISLES = inst.aisles.size();
 		this.dummySolutionTime = dummyTime;
 	}
@@ -33,7 +34,6 @@ public class Iterative extends Approach {
 		try {		
 			model.build();			
 			print_header();
-			
 			
 			for(; MAX_AISLES >= 0; MAX_AISLES--) {
 				if(getRemainingDummyTime(stopWatch) <= 5) {
@@ -56,7 +56,7 @@ public class Iterative extends Approach {
 				
 				print_line(MAX_AISLES);
 			}
-			
+
 			
 			for(int h = 1; h <= MAX_AISLES; h++) {
 				if(getRemainingTime(stopWatch) <= 5) {
@@ -65,13 +65,16 @@ public class Iterative extends Approach {
 					break;
 				}
 				
+				// Update minimum aisles.
+				if(!solutionFound)
+					MIN_AISLES = h;
+				
 				// Sets the Lower Bound.
 				if(solution != null) {
 					int new_lb = (int) Math.floor(objVal * h + 1);
 					if(new_lb > inst.UB) break;
 					model.setLB(Math.max(inst.LB, new_lb));
-				} else 
-					MIN_AISLES = h;
+				}
 				
 				// Set parameters for running the model for h aisles..
 				model.setTimeLimit(getRemainingTime(stopWatch));
@@ -87,12 +90,15 @@ public class Iterative extends Approach {
 					
 					// Update max_aisles.
 					double result = inst.UB / objVal;
-					MAX_AISLES = (int) Math.floor(result);
+					MAX_AISLES = Math.min(MAX_AISLES, (int) Math.floor(result));
+					
+					solutionFound = true;
 				}
 				
 				print_line(h);
 			}
 			
+			logln("" + MIN_AISLES + " " + MAX_AISLES);
 			
 			logln("Solution found: " + objVal);
 			logln("Optimal: " + optimal + "\n");

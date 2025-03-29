@@ -10,7 +10,8 @@ import java.util.Set;
 enum Method {
 	Iterative,
 	BranchAndBound,
-	ItBnB
+	ItBnB,
+	ParallelIterative
 }
 
 public class ChallengeSolver {
@@ -48,7 +49,13 @@ public class ChallengeSolver {
 	        	}
 	        	
 	        	break;
+	        	
+	    	case ParallelIterative:
+	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, 540000);
+	        	solution = parallelIterative.optimize();
+	    		break;
     	}
+    	
     	
     	System.out.println("Is Feasible: " + isSolutionFeasible());
     	System.out.println("Objective Value: " + computeObjectiveFunction());
