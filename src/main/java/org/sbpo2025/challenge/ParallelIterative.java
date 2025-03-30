@@ -16,8 +16,8 @@ public class ParallelIterative extends Approach {
 	ChallengeSolution ascendingSolution;
 	ChallengeSolution decendingSolution;
 	
-	double ascendingIncumbent;
-	double decendingIncumbent;
+	double ascendingIncumbent = 0;
+	double decendingIncumbent = 0;
 	
 	// Solver informations.
 	boolean ascendingOptimal = false;
@@ -27,8 +27,8 @@ public class ParallelIterative extends Approach {
 	boolean optimal;
 	
 	// Threads informations.
-	int ascendingLastIt;
-	int decendingLastIt;
+	int ascendingLastIt = 0;
+	int decendingLastIt = Integer.MAX_VALUE;
 	
 	// Upper and lower bounds for items.
 	int upperBoundItems;
@@ -130,7 +130,6 @@ public class ParallelIterative extends Approach {
 						
 						decendingModel.setUB(upperBoundItems);
 						decendingModel.setLB(decendingLowerBoundItems);
-						if(decendingLowerBoundItems > upperBoundItems) break;
 						
 						// Optimizes for h aisles.
 						if(!ascendingOptimal && (h >= ascendingLastIt)) 
@@ -189,7 +188,6 @@ public class ParallelIterative extends Approach {
 						ascendingModel.setLB(ascendingLowerBoundItems);
 						
 						// Set upper bound for items.
-						if(ascendingLowerBoundItems > upperBoundItems) break;
 						ascendingModel.setUB(upperBoundItems);
 						
 						// Optimizes model for "num_aisles" aisles.
