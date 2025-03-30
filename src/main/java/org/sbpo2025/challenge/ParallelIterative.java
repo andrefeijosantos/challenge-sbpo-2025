@@ -102,6 +102,7 @@ public class ParallelIterative extends Approach {
 		return solution;
 	}
 	
+
 	private Thread getDecendingThread() {
 		return new Thread() {
 			@Override
@@ -157,6 +158,7 @@ public class ParallelIterative extends Approach {
 		};
 	}
 	
+	 	  	  	   		  	   	 			
 	private Thread getAscendingThread() {
 		return new Thread() {
 			@Override

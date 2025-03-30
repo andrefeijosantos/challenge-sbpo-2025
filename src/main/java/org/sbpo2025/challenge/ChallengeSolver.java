@@ -29,7 +29,7 @@ public class ChallengeSolver {
 	        	break;
 	        	
 	    	case ParallelIterative:
-	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, 540000);
+	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, 590000);
 	        	solution = parallelIterative.optimize();
 	    		break;
     	}
