@@ -9,8 +9,6 @@ import java.util.Set;
 
 enum Method {
 	Iterative,
-	BranchAndBound,
-	ItBnB,
 	ParallelIterative
 }
 
@@ -28,26 +26,6 @@ public class ChallengeSolver {
 	    	case Iterative:
 	        	Iterative itModel = new Iterative(this.inst, stopWatch, 600000, 30000);
 	        	solution = itModel.optimize();
-	        	break;
-	        	
-	    	case BranchAndBound:
-	    		BranchAndBound bnbModel = new BranchAndBound(this.inst, stopWatch, 600000);
-	    		solution = bnbModel.DFS();
-	    		break;
-	    		
-	    	case ItBnB:
-	        	Iterative itModel2 = new Iterative(this.inst, stopWatch, 180000, 30000);
-	        	solution = itModel2.optimize();
-	        	
-	        	if(!itModel2.isOptimal()) {
-		    		BranchAndBound bnbModel2 = new BranchAndBound(this.inst, stopWatch, 413000, itModel2.MIN_AISLES, 
-		    				                                      itModel2.MAX_AISLES, itModel2.objVal);
-		    		
-		    		ChallengeSolution bnbSol;
-		    		bnbSol = bnbModel2.DFS();
-		    		solution = bnbSol != null? bnbSol : solution;
-	        	}
-	        	
 	        	break;
 	        	
 	    	case ParallelIterative:
