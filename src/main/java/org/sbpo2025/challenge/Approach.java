@@ -10,7 +10,7 @@ public class Approach {
 	Instance inst;
 	
 	// Objective Value.
-	double objVal = 0;
+	double objVal;
 	
 	// Useful data for running the solution.
 	long MAX_RUNTIME;
@@ -21,6 +21,7 @@ public class Approach {
 		this.inst = inst;
 		this.stopWatch = stopWatch;
 		this.MAX_RUNTIME = time_limit;
+		this.objVal = ((double)inst.LB)/inst.aisles.size();
 	}
 	
 

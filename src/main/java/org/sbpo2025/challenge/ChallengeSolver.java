@@ -9,7 +9,7 @@ import java.util.Set;
 
 enum Method {
 	Iterative,
-	BranchAndBound
+	ParallelIterative
 }
 
 public class ChallengeSolver {
@@ -24,15 +24,16 @@ public class ChallengeSolver {
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
     	switch(method) {
 	    	case Iterative:
-	        	Iterative model = new Iterative(this.inst, stopWatch, 600000);
-	        	solution = model.optimize();
+	        	Iterative itModel = new Iterative(this.inst, stopWatch, 600000, 30000);
+	        	solution = itModel.optimize();
 	        	break;
 	        	
-	    	case BranchAndBound:
-	    		BranchAndBound bnb = new BranchAndBound(this.inst, stopWatch, 600000);
-	    		solution = bnb.BeFS();
+	    	case ParallelIterative:
+	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, 540000);
+	        	solution = parallelIterative.optimize();
 	    		break;
     	}
+    	
     	
     	System.out.println("Is Feasible: " + isSolutionFeasible());
     	System.out.println("Objective Value: " + computeObjectiveFunction());

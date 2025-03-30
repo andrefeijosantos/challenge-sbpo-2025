@@ -23,7 +23,7 @@ public class Challenge {
         
         // Execute solver for instance read.
         var solver = new ChallengeSolver(instance);
-        ChallengeSolution solution = solver.solve(Method.Iterative, stopWatch);
+        ChallengeSolution solution = solver.solve(Method.ParallelIterative, stopWatch);
         
         instance.writeOutput(solution, args[1]);
     }
