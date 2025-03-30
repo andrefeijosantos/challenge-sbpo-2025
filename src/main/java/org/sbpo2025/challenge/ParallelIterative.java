@@ -32,7 +32,8 @@ public class ParallelIterative extends Approach {
 	
 	// Upper and lower bounds for items.
 	int upperBoundItems;
-	int lowerBoundItems;
+	int ascendingLowerBoundItems;
+	int decendingLowerBoundItems;
 	
 	int MIN_AISLES;
 	int MAX_AISLES;
@@ -48,7 +49,8 @@ public class ParallelIterative extends Approach {
 		ascendingModel.build();
 		decendingModel.build();
 		
-		lowerBoundItems = inst.LB;
+		ascendingLowerBoundItems = inst.LB;
+		decendingLowerBoundItems = inst.LB;
 		upperBoundItems = inst.UB;
 		
 		TOTAL_AISLES = inst.aisles.size();
@@ -105,7 +107,7 @@ public class ParallelIterative extends Approach {
 			@Override
 			public void run() {	
 				try {
-					for(int h = TOTAL_AISLES; h >= 0 && !ascendingOptimal; h--) {
+					for(int h = TOTAL_AISLES; h > 0; h--) {
 						decendingLastIt = h;
 						
 						if(getRemainingTime(stopWatch) <= 5) {
@@ -116,15 +118,23 @@ public class ParallelIterative extends Approach {
 						
 						// Set parameters for running the model for h aisles..
 						decendingModel.setTimeLimit(getRemainingTime(stopWatch));
+						
+						// Optimizes model for "num_aisles" aisles.
+						h = Math.min(h, MAX_AISLES);
 						decendingModel.setSumY(h);
 						
 						// Set upper and lower bounds.
-						decendingModel.setUB(upperBoundItems);
-						decendingModel.setLB(lowerBoundItems);
-						if(lowerBoundItems > upperBoundItems) break;
+						double bestIncumbent = Math.max(ascendingIncumbent, decendingIncumbent);
+						decendingLowerBoundItems = Math.max(inst.LB, (int) Math.floor(bestIncumbent * h + 1));	
 						
-						// Optimizes model for "num_aisles" aisles.
-						decendingModel.solve();
+						decendingModel.setUB(upperBoundItems);
+						decendingModel.setLB(decendingLowerBoundItems);
+						if(decendingLowerBoundItems > upperBoundItems) break;
+						
+						// Optimizes for h aisles.
+						if(!ascendingOptimal && (h >= ascendingLastIt)) 
+							decendingModel.solve();
+						else break;
 						
 						// If a better solution was found.
 						if(decendingModel.getStatus() == IloCplex.Status.Feasible || decendingModel.getStatus() == IloCplex.Status.Optimal) {
@@ -152,7 +162,7 @@ public class ParallelIterative extends Approach {
 			@Override
 			public void run() {	
 				try {
-					for(int h = 1; h <= MAX_AISLES  && !decendingOptimal; h++) {
+					for(int h = 1; h <= MAX_AISLES; h++) {
 						ascendingLastIt = h;
 						
 						if(getRemainingTime(stopWatch) <= 5) {
@@ -171,15 +181,19 @@ public class ParallelIterative extends Approach {
 						ascendingModel.setSumY(h);
 						
 						// Update lower bound.
-						lowerBoundItems = Math.max(inst.LB, (int) Math.floor(ascendingIncumbent * h + 1));					
-						ascendingModel.setLB(lowerBoundItems);
+						double bestIncumbent = Math.max(ascendingIncumbent, decendingIncumbent);
+						ascendingLowerBoundItems = Math.max(inst.LB, (int) Math.floor(bestIncumbent * h + 1));	
+						decendingLowerBoundItems = Math.max(inst.LB, (int) Math.floor(bestIncumbent * h + 1));	
+						ascendingModel.setLB(ascendingLowerBoundItems);
 						
 						// Set upper bound for items.
-						if(lowerBoundItems > upperBoundItems) break;
+						if(ascendingLowerBoundItems > upperBoundItems) break;
 						ascendingModel.setUB(upperBoundItems);
 						
 						// Optimizes model for "num_aisles" aisles.
-						ascendingModel.solve();
+						if(!decendingOptimal && (h <= decendingLastIt))
+							ascendingModel.solve();
+						else break;
 						
 						// If a better solution was found.
 						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) { 
