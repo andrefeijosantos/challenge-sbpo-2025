@@ -13,8 +13,8 @@ public class ParallelIterative extends Approach {
 	ItModel decendingModel;
 	
 	// Solutions
-	ChallengeSolution ascendingSolution;
-	ChallengeSolution decendingSolution;
+	ChallengeSolution ascendingSolution = null;
+	ChallengeSolution decendingSolution = null;
 	
 	double ascendingIncumbent = 0;
 	double decendingIncumbent = 0;
