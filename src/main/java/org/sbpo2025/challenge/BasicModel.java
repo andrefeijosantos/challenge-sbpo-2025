@@ -35,10 +35,6 @@ public class BasicModel {
 		try {			
 			model = new IloCplex();
 			
-			// Set model parameters.
-			model.setParam(IloCplex.Param.MIP.Display, 0);
-			model.setOut(null);
-			
 			buildConsts();
 			buildConstsSpecific();
 			buildVars();
@@ -135,6 +131,10 @@ public class BasicModel {
 	
 	public double getValue(IloNumVar var) throws IloException {
 		return model.getValue(var);
+	}
+	
+	public double getValue(IloLinearIntExpr expr) throws IloException {
+		return model.getValue(expr);
 	}
 	
 	public int getNumThreads() throws IloException {

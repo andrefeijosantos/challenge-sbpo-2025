@@ -31,7 +31,12 @@ public class ItModel extends BasicModel {
 	@Override
 	protected void buildSpecific() {
 		try {
+			// Set model parameters.
+			model.setParam(IloCplex.Param.MIP.Display, 0);
+			model.setOut(null);
+			
 			model.setParam(IloCplex.Param.Threads, numThreads);
+			
 		} catch(IloException e) {
 			e.printStackTrace();
 		}

@@ -9,7 +9,9 @@ import java.util.Set;
 
 enum Method {
 	Iterative,
-	ParallelIterative
+	ParallelIterative,
+	ParamFractional,
+	RLFractional
 }
 
 public class ChallengeSolver {
@@ -31,6 +33,16 @@ public class ChallengeSolver {
 	    	case ParallelIterative:
 	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, 590000);
 	        	solution = parallelIterative.optimize();
+	    		break;
+	    		
+	    	case ParamFractional:
+	    		ParametricFractional fractional = new ParametricFractional(this.inst, stopWatch, 590000);
+	        	solution = fractional.optimize();
+	    		break;
+	    		
+	    	case RLFractional:
+	    		RefLinFractional refLinFractional = new RefLinFractional(this.inst, stopWatch, 590000);
+	        	solution = refLinFractional.optimize();
 	    		break;
     	}
     	
