@@ -1,0 +1,7 @@
+SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)
+Thread count: CPLEX using up to 0 threads
+Variable types: 1 continuous; 10525 binaries
+Time Limit: time limit set to 14400 seconds
+
+  it  |    q*    |  N  |  D  |  f(q*)  
+    1 |  0,00000 |3892 | 184 |3892,000

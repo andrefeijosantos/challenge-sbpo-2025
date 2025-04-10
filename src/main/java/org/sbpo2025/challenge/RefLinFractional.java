@@ -27,7 +27,7 @@ public class RefLinFractional extends Approach {
 			
 			logln("");
 			logln("Solution found: " + objVal);
-			logln("Prooved optimal? " + (refLinModel.getStatus() == Status.Optimal) + "\n");
+			logln("Proved optimal? " + (refLinModel.getStatus() == Status.Optimal) + "\n");
 			
 		} catch(IloException e) {
 			e.printStackTrace();

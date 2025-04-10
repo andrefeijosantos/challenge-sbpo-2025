@@ -18,6 +18,11 @@ public class ChallengeSolver {
 	
     ChallengeSolution solution = null;
     private Instance inst;
+    
+    // Time Limit
+    int HOURS   = 4, 
+        MINUTES = 0, 
+        SECONDS = 0;
 
     public ChallengeSolver(Instance instance) {
         this.inst = instance;
@@ -36,8 +41,8 @@ public class ChallengeSolver {
 	    		break;
 	    		
 	    	case ParamFractional:
-	    		ParametricFractional fractional = new ParametricFractional(this.inst, stopWatch, 590000);
-	        	solution = fractional.optimize();
+	    		ParametricFractional paramFractional = new ParametricFractional(this.inst, stopWatch, getTimeLimitInSeconds());
+	        	solution = paramFractional.optimize();
 	    		break;
 	    		
 	    	case RLFractional:
@@ -54,7 +59,9 @@ public class ChallengeSolver {
         return solution;
     }
 
-
+    protected int getTimeLimitInSeconds() {
+    	return 1000*(3600 * HOURS + 60 * MINUTES + SECONDS);
+    }
 
     protected boolean isSolutionFeasible() {
         Set<Integer> selectedOrders = solution.orders();

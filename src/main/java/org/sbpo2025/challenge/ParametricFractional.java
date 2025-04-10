@@ -11,8 +11,8 @@ public class ParametricFractional extends Approach {
 	
 	final double TOL = 1e-6;
 	
-	public ParametricFractional(Instance inst, StopWatch stopWatch, long time_limit) {
-		super(inst, stopWatch, time_limit);
+	public ParametricFractional(Instance inst, StopWatch stopWatch, long timeLimit) {
+		super(inst, stopWatch, timeLimit);
 		paramModel = new ParametricModel(inst);
 		paramModel.build();
 	}
@@ -26,7 +26,7 @@ public class ParametricFractional extends Approach {
 			double value;
 			int it = 0;
 			
-			while(getRemainingTime(stopWatch) <= 5) {	
+			while(getRemainingTime(stopWatch) > 5) {	
 				paramModel.setTimeLimit(getRemainingTime(stopWatch));
 				paramModel.setRatio(rAst);
 				paramModel.solve();
@@ -40,13 +40,13 @@ public class ParametricFractional extends Approach {
 				else {
 					rAst = paramModel.getValue(paramModel.sumItems)/paramModel.getValue(paramModel.sumAisles);
 					solution = paramModel.saveSolution();
-					objVal = rAst;
+					objVal = Math.max(objVal, rAst);
 				}
 			}
 			
 			logln("");
 			logln("Solution found: " + rAst);
-			logln("Prooved optimal? " + (paramModel.getStatus() == Status.Optimal) + "\n");
+			logln("Proved optimal? " + (paramModel.getStatus() == Status.Optimal) + "\n");
 			
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -60,6 +60,7 @@ public class ParametricFractional extends Approach {
 		logln("SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)");
 		logln("Thread count: CPLEX using up to " + paramModel.getNumThreads() + " threads");
 		logln("Variable types: 1 continuous; " + (paramModel.y.length + paramModel.p.length) + " binaries");
+		logln("Time Limit: time limit set to " + MAX_RUNTIME/1000 + " seconds");
 		logln("");
 		
 		logln("  it  |    q*    |  N  |  D  |  f(q*)  ");

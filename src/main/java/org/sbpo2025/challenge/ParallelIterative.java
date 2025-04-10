@@ -77,12 +77,12 @@ public class ParallelIterative extends Approach {
 			Thread dt = getDecendingThread();
 			
 			at.start();
-			//dt.start();
+			dt.start();
 			
 			// Wait for both threads.
 			try {
 				at.join();
-				//dt.join();
+				dt.join();
 			} catch(InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -103,7 +103,7 @@ public class ParallelIterative extends Approach {
 			logln("Ascending Thread finished at: " + ascendingLastIt);
 			logln("Decending Thread finished at: " + decendingLastIt);
 			logln("Solution found: " + objVal);
-			logln("Prooved optimal? " + optimal + "\n");
+			logln("Proved optimal? " + optimal + "\n");
 			
 		} catch(IloException e) {
 			e.printStackTrace();

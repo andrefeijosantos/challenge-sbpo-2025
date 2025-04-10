@@ -11,9 +11,6 @@ import ilog.concert.IloNumVar;
 
 public class RefLinModel extends BasicModel {
 
-	// Model constants.
-	double Uu, Lu;
-	
 	// Model variables.
 	public IloIntVar[] y;
 	public IloNumVar[] g, t;
@@ -25,9 +22,6 @@ public class RefLinModel extends BasicModel {
 	
 	public RefLinModel(Instance inst) {
 		super(inst);
-		
-		Lu = 1.0/inst.aisles.size();
-		Uu = 1;
 	}
 	
 	protected void buildVarsSpecific() {
@@ -38,7 +32,7 @@ public class RefLinModel extends BasicModel {
 	            y[a] = model.boolVar("y_" + a);
 	        
 	        // 1/SUM y_a
-	        u = model.numVar(Lu, Uu, "u");
+	        u = model.numVar(1/inst.aisles.size(), 1, "u");
 
 	        // u, if o-ith order was built; 0, otherwise.
 			t = new IloNumVar[inst.orders.size()];
@@ -98,17 +92,15 @@ public class RefLinModel extends BasicModel {
         }
         
         for(int a = 0; a < inst.aisles.size(); a++) {
-        	model.addLe(g[a], model.prod(Uu, y[a]));
-        	model.addGe(g[a], model.prod(Lu, y[a]));
-        	model.addLe(g[a], model.sum(u, model.prod(-Lu, model.sum(1, model.prod(-1, y[a])))));
-        	model.addGe(g[a], model.sum(u, model.prod(-Uu, model.sum(1, model.prod(-1, y[a])))));
+        	model.addLe(g[a], y[a]);
+        	model.addLe(g[a], u);
+        	model.addGe(g[a], model.sum(u, model.sum(y[a], -1)));
         }
         
         for(int o = 0; o < inst.orders.size(); o++) {
-        	model.addLe(t[o], model.prod(Uu, p[o]));
-        	model.addGe(t[o], model.prod(Lu, p[o]));
-        	model.addLe(t[o], model.sum(u, model.prod(-Lu, model.sum(1, model.prod(-1, p[o])))));
-        	model.addGe(t[o], model.sum(u, model.prod(-Uu, model.sum(1, model.prod(-1, p[o])))));
+        	model.addLe(t[o], p[o]);
+        	model.addLe(t[o], u);
+        	model.addGe(t[o], model.sum(u, model.sum(p[o], -1)));
         }
         
         // ( 2 ) SUM y_a = NUM_AISLES
