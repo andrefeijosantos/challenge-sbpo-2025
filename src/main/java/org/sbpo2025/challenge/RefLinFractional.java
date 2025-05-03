@@ -18,6 +18,7 @@ public class RefLinFractional extends Approach {
 
 	public ChallengeSolution optimize() {
 		try {
+			refLinModel.setNumThreads(16);
 			printHeader();
 			
 			refLinModel.setTimeLimit(getRemainingTime(stopWatch));

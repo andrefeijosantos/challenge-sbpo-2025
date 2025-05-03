@@ -9,9 +9,16 @@ import java.util.Set;
 
 enum Method {
 	Iterative,
+	GeneralParallelIterative,
 	ParallelIterative,
 	ParamFractional,
 	RLFractional
+}
+
+enum ItemsDistribution {
+	AllOneItem,
+	MixedItemsQuantities,
+	AllMultipleItems
 }
 
 public class ChallengeSolver {
@@ -20,8 +27,8 @@ public class ChallengeSolver {
     private Instance inst;
     
     // Time Limit
-    int HOURS   = 4, 
-        MINUTES = 0, 
+    int HOURS   = 0, 
+        MINUTES = 10, 
         SECONDS = 0;
 
     public ChallengeSolver(Instance instance) {
@@ -31,12 +38,17 @@ public class ChallengeSolver {
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
     	switch(method) {
 	    	case Iterative:
-	        	Iterative itModel = new Iterative(this.inst, stopWatch, 600000, 30000);
+	        	Iterative itModel = new Iterative(this.inst, stopWatch, getTimeLimitInSeconds(), 30000);
 	        	solution = itModel.optimize();
 	        	break;
+
+	    	case GeneralParallelIterative:
+	    		ParallelIterative genParallelIterative = new ParallelIterative(this.inst, ItemsDistribution.AllMultipleItems, stopWatch, getTimeLimitInSeconds());
+	        	solution = genParallelIterative.optimize();
+	    		break;
 	        	
 	    	case ParallelIterative:
-	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, 590000);
+	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, getItemsDistribution(), stopWatch, getTimeLimitInSeconds());
 	        	solution = parallelIterative.optimize();
 	    		break;
 	    		
@@ -46,7 +58,7 @@ public class ChallengeSolver {
 	    		break;
 	    		
 	    	case RLFractional:
-	    		RefLinFractional refLinFractional = new RefLinFractional(this.inst, stopWatch, 590000);
+	    		RefLinFractional refLinFractional = new RefLinFractional(this.inst, stopWatch, getTimeLimitInSeconds());
 	        	solution = refLinFractional.optimize();
 	    		break;
     	}
@@ -58,7 +70,23 @@ public class ChallengeSolver {
     	
         return solution;
     }
-
+    
+    protected ItemsDistribution getItemsDistribution() {
+    	ItemsDistribution res = ItemsDistribution.AllOneItem;
+    	
+    	int multipleItemsCnt = 0;
+    	for(int o = 0; o < inst.orders.size(); o++)
+    		if(inst.orders.get(o).keySet().size() > 1) {
+    			res = ItemsDistribution.MixedItemsQuantities;
+    			multipleItemsCnt++;
+    		}
+    	
+    	if(multipleItemsCnt == inst.orders.size())
+    		res = ItemsDistribution.AllMultipleItems;
+    	
+    	return res;
+    }
+    
     protected int getTimeLimitInSeconds() {
     	return 1000*(3600 * HOURS + 60 * MINUTES + SECONDS);
     }

@@ -1,0 +1,69 @@
+SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)
+Approach: Parallel Iterative Solver
+Thread count: CPLEX using up to 20 threads
+Variable types: 1 continuous; 2234 integer (2234 binaries)
+
+  Thread  |  h  |  H  |  LB  |  UB  |  Num. Items  |  Incumbent  |  Status  
+       DE | 164 |   1 |  585 | 2150 |         2150 |   13,109756 |   Optimal
+       DE | 163 |   1 | 2137 | 2150 |         2150 |   13,190184 |   Optimal
+       AC |   1 | 162 |  585 | 2150 |            - |    3,000000 |Infeasible
+       DE | 162 |   2 | 2137 | 2150 |         2150 |   13,271605 |   Optimal
+       DE | 161 |   2 | 2137 | 2150 |         2150 |   13,354037 |   Optimal
+       AC |   2 | 160 |  585 | 2150 |            - |    3,000000 |Infeasible
+       DE | 160 |   3 | 2137 | 2150 |         2150 |   13,437500 |   Optimal
+       DE | 159 |   3 | 2137 | 2150 |         2150 |   13,522013 |   Optimal
+       DE | 158 |   3 | 2137 | 2150 |         2150 |   13,607595 |   Optimal
+       AC |   3 | 157 |  585 | 2150 |            - |    3,000000 |Infeasible
+       DE | 157 |   4 | 2137 | 2150 |         2150 |   13,694268 |   Optimal
+       DE | 156 |   4 | 2137 | 2150 |         2150 |   13,782051 |   Optimal
+       DE | 155 |   4 | 2137 | 2150 |         2150 |   13,870968 |   Optimal
+       DE | 154 |   4 | 2137 | 2150 |         2150 |   13,961039 |   Optimal
+       DE | 153 |   4 | 2137 | 2150 |         2150 |   14,052288 |   Optimal
+       DE | 152 |   4 | 2136 | 2150 |         2150 |   14,144737 |   Optimal
+       DE | 151 |   4 | 2136 | 2150 |         2150 |   14,238411 |   Optimal
+       DE | 150 |   4 | 2136 | 2150 |         2150 |   14,333333 |   Optimal
+       DE | 149 |   4 | 2136 | 2150 |         2150 |   14,429530 |   Optimal
+       DE | 148 |   4 | 2136 | 2150 |         2150 |   14,527027 |   Optimal
+       DE | 147 |   4 | 2136 | 2150 |         2150 |   14,625850 |   Optimal
+       DE | 146 |   4 | 2136 | 2150 |         2150 |   14,726027 |   Optimal
+       DE | 145 |   4 | 2136 | 2150 |         2150 |   14,827586 |   Optimal
+       DE | 144 |   4 | 2136 | 2150 |         2150 |   14,930556 |   Optimal
+       DE | 143 |   4 | 2136 | 2150 |         2150 |   15,034965 |   Optimal
+       DE | 142 |   4 | 2135 | 2150 |         2150 |   15,140845 |   Optimal
+       DE | 141 |   4 | 2135 | 2150 |         2150 |   15,248227 |   Optimal
+       DE | 140 |   4 | 2135 | 2150 |         2150 |   15,357143 |   Optimal
+       DE | 139 |   4 | 2135 | 2150 |         2150 |   15,467626 |   Optimal
+       DE | 138 |   4 | 2135 | 2150 |         2150 |   15,579710 |   Optimal
+       DE | 137 |   4 | 2135 | 2150 |         2150 |   15,693431 |   Optimal
+       DE | 136 |   4 | 2135 | 2150 |         2150 |   15,808824 |   Optimal
+       DE | 135 |   4 | 2135 | 2150 |         2150 |   15,925926 |   Optimal
+       DE | 134 |   4 | 2135 | 2150 |         2150 |   16,044776 |   Optimal
+       DE | 133 |   4 | 2134 | 2150 |         2150 |   16,165414 |   Optimal
+       DE | 132 |   4 | 2134 | 2150 |         2150 |   16,287879 |   Optimal
+       DE | 131 |   4 | 2134 | 2150 |         2150 |   16,412214 |   Optimal
+       DE | 130 |   4 | 2134 | 2150 |         2150 |   16,538462 |   Optimal
+       DE | 129 |   4 | 2134 | 2150 |         2150 |   16,666667 |   Optimal
+       DE | 128 |   4 | 2134 | 2150 |         2150 |   16,796875 |   Optimal
+       AC |   4 |  14 |  585 | 2150 |          597 |  149,250000 |   Optimal
+       DE | 127 |   5 | 2134 | 2150 |            - |   16,796875 |   Unknown
+       AC |   5 |  14 |  747 | 2150 |          748 |  149,600000 |   Optimal
+       AC |   6 |  14 |  898 | 2133 |            - |  149,600000 |Infeasible
+       DE |  14 |   7 | 2090 | 2133 |            - |   16,796875 |Infeasible
+       AC |   7 |  13 | 1048 | 2133 |            - |  149,600000 |Infeasible
+       AC |   8 |  13 | 1197 | 2089 |            - |  149,600000 |Infeasible
+       DE |  13 |   9 | 1945 | 2089 |            - |   16,796875 |Infeasible
+       AC |   9 |  12 | 1347 | 2089 |            - |  149,600000 |Infeasible
+       DE |  12 |  10 | 1796 | 1944 |            - |   16,796875 |   Unknown
+Time Limit reached (DE).
+       AC |  10 |  12 | 1497 | 1944 |            - |  149,600000 |   Unknown
+Time Limit reached (AC).
+
+Ascending Thread finished at: 10
+Decending Thread finished at: 12
+Solution found: 149.6
+Proved optimal? false
+
+Is Feasible: true
+Objective Value: 149.6
+Time: 00:09:59.955
+Output written to test_out.txt

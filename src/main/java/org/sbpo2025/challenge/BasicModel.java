@@ -3,9 +3,13 @@ package org.sbpo2025.challenge;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.tuple.Pair;
+
+import ilog.concert.IloConstraint;
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
 import ilog.concert.IloLinearIntExpr;
+import ilog.concert.IloLinearNumExpr;
 import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
 import ilog.cplex.IloCplex.Status;
@@ -22,8 +26,11 @@ public class BasicModel {
 	List<Map<Integer, Integer>> q, w;
 	
 	// Model variables.
-	public IloNumVar z;
-	public IloIntVar[] p;
+	public IloLinearNumExpr objective;
+	public IloNumVar[] p;
+	
+	IloConstraint lbConstr = null;
+	IloConstraint ubConstr = null;
 	
 	
 	public BasicModel(Instance inst) {
@@ -51,7 +58,7 @@ public class BasicModel {
 		}
 	}
 	
-	protected void buildConsts() {	
+	protected void buildConsts() throws IloException {	
 		q = inst.aisles;
 		w = inst.orders;
 	}
@@ -63,12 +70,23 @@ public class BasicModel {
 	protected void buildVars() {
 		try {	
 			// 1, if o-ith orders was built; 0, otherwise.
-			p = new IloIntVar[inst.orders.size()];
-	        for (int o = 0; o < inst.orders.size(); o++) 
-	            p[o] = model.boolVar("p_" + o);
-	        
-	        // Quantity of collected items.
-	        z = model.numVar(inst.LB, inst.UB, "z");
+			p = new IloNumVar[inst.orders.size()];
+	        for (int o = 0; o < inst.orders.size(); o++) {	        	
+	        	// If it's impossible to build o, don't create its p.
+	        	if(inst.wontBuild.get(o)) {
+	        		p[o] = null;
+	        		continue;
+	        	}
+	        	
+	        	//p[o] = model.boolVar("p_" + o);
+	        	//if(true) continue;
+	        	
+	        	int firstItem = inst.orders.get(o).keySet().iterator().next();
+	        	if(inst.orders.get(o).keySet().size() == 1 && inst.orders.get(o).get(firstItem) == 1)
+	        		p[o] = model.numVar(0, 1, "p_" + o);
+	        	else
+	        		p[o] = model.boolVar("p_" + o);
+	        }
 	        
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -81,7 +99,7 @@ public class BasicModel {
 	
 	protected void buildObjective() {
 		try {
-			model.addMaximize(z);
+			model.addMaximize(objective);
 			
 		} catch(IloException e) {
 			e.printStackTrace();
@@ -89,16 +107,20 @@ public class BasicModel {
 	}
 	
 	protected void buildConstrs() throws IloException {
-		IloLinearIntExpr sumItems = model.linearIntExpr();
+		objective = model.linearNumExpr();
 		int totalItems = 0;
 		for(int o = 0; o < inst.orders.size(); o++) {
 			for(int i : inst.orders.get(o).keySet())
 				totalItems += w.get(o).get(i);
-			sumItems.addTerm(totalItems, p[o]); 
+			if(p[o] != null) objective.addTerm(totalItems, p[o]); 
 			totalItems = 0;
 		}
 		
-		model.addEq(z, sumItems);
+		lbConstr = model.addLe(inst.LB,  objective);
+		ubConstr = model.addLe(objective, inst.UB);
+		
+		for(Pair<Integer, Integer> ords : inst.mutexOrders)
+			model.addLe(p[ords.getLeft()], model.sum(1, model.prod(-1, p[ords.getRight()])));
 	}
 	
 	protected void buildConstrsSpecific() throws IloException {
@@ -137,8 +159,16 @@ public class BasicModel {
 		return model.getValue(expr);
 	}
 	
+	public double getValue(IloLinearNumExpr expr) throws IloException {
+		return model.getValue(expr);
+	}
+	
 	public int getNumThreads() throws IloException {
 		return model.getParam(IloCplex.Param.Threads);
+	}
+	
+	public void setNumThreads(int numThreads) throws IloException {
+		model.setParam(IloCplex.Param.Threads, numThreads);
 	}
 	
 	public ChallengeSolution saveSolution() throws IloException {

@@ -33,11 +33,16 @@ public class RefLinModel extends BasicModel {
 	        
 	        // 1/SUM y_a
 	        u = model.numVar(1/inst.aisles.size(), 1, "u");
-
+	        
 	        // u, if o-ith order was built; 0, otherwise.
 			t = new IloNumVar[inst.orders.size()];
-	        for (int o = 0; o < inst.orders.size(); o++) 
+	        for (int o = 0; o < inst.orders.size(); o++) {
+	        	if(inst.wontBuild.get(o)) {
+	        		t[o] = null;
+	        		continue;
+	        	}
 	            t[o] = model.numVar(0, 1, "t_" + o);
+	        }
 	        
 	        // u, if a-ith aisle was visited; 0, otherwise.
 			g = new IloNumVar[inst.aisles.size()];
@@ -60,11 +65,12 @@ public class RefLinModel extends BasicModel {
 	}
 	
 	protected void buildConstrs() throws IloException {
-		Integer value; 
-		
+		// LB and UB.
 		objective = model.linearNumExpr();
 		int totalItems = 0;
 		for(int o = 0; o < inst.orders.size(); o++) {
+			if(t[o] == null) continue;
+			
 			for(int i : inst.orders.get(o).keySet())
 				totalItems += w.get(o).get(i);
 			objective.addTerm(totalItems, t[o]); 
@@ -76,7 +82,7 @@ public class RefLinModel extends BasicModel {
         
         
         // ( 3 ) SUM w_i,o x p_o <= SUM q_i,a * y_a  	
-        for (int i = 0; i < inst.n; i++) {
+        /*for (int i = 0; i < inst.n; i++) {
         	IloLinearNumExpr sumOrders = model.linearNumExpr();
         	for (int o : inst.itemsPerOrders.get(i).keySet())
         		sumOrders.addTerm(w.get(o).get(i), t[o]);
@@ -89,8 +95,34 @@ public class RefLinModel extends BasicModel {
         	}
 
         	model.addLe(sumOrders, sumY);
+        }*/
+		
+        for (int i = 0; i < inst.n; i++) {
+        	if(inst.wontUse.get(i)/* || inst.easy.get(i)*/) continue;
+        	
+        	IloLinearNumExpr sumOrders = model.linearNumExpr();
+        	for (int o : inst.itemsPerOrders.get(i).keySet())
+        		if(t[o] != null) sumOrders.addTerm(w.get(o).get(i), t[o]);
+        	
+        	IloLinearNumExpr sumAisles = model.linearNumExpr();
+        	for(int a : inst.itemsPerAisles.get(i).keySet()) 
+        		sumAisles.addTerm(q.get(a).get(i), g[a]);
+        	
+        	model.addLe(sumOrders, sumAisles);
         }
         
+        for (int i = 0; i < inst.n; i++) {
+        	if(inst.wontUse.get(i) || !inst.easy.get(i)) continue;
+        	
+        	IloLinearNumExpr sumAisles = model.linearNumExpr();
+        	for(int a : inst.itemsPerAisles.get(i).keySet()) 
+        		sumAisles.addTerm(1, g[a]);
+        	
+        	for (int o : inst.itemsPerOrders.get(i).keySet())
+        		if(t[o] != null) model.addLe(t[o], sumAisles);
+        }
+        
+        // Reformulation-Lienarization constraints.
         for(int a = 0; a < inst.aisles.size(); a++) {
         	model.addLe(g[a], y[a]);
         	model.addLe(g[a], u);
@@ -98,6 +130,9 @@ public class RefLinModel extends BasicModel {
         }
         
         for(int o = 0; o < inst.orders.size(); o++) {
+        	if(inst.wontBuild.get(o))
+        		continue;
+        	
         	model.addLe(t[o], p[o]);
         	model.addLe(t[o], u);
         	model.addGe(t[o], model.sum(u, model.sum(p[o], -1)));
@@ -115,14 +150,13 @@ public class RefLinModel extends BasicModel {
 	@Override
 	public ChallengeSolution saveSolution() throws IloException {
 		Set<Integer> orders = new HashSet<>();
-		int size_o = inst.orders.size();
-		for(int o = 0; o < size_o; o++) 
-			if(model.getValue(p[o]) > .5) 
+		for(int o = 0; o < inst.orders.size(); o++) 
+			if(p[o] != null && model.getValue(p[o]) > .1) 
 				orders.add(o);
 		
 		Set<Integer> aisles = new HashSet<>();
 		for(int a = 0; a < y.length; a++) 
-			if(model.getValue(y[a]) > .5) 
+			if(model.getValue(y[a]) > .1) 
 				aisles.add(a);
 		
 		return new ChallengeSolution(orders, aisles);

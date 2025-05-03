@@ -20,6 +20,7 @@ public class ParametricFractional extends Approach {
 	
 	public ChallengeSolution optimize() {
 		try {
+			paramModel.setNumThreads(16);
 			printHeader();
 			
 			double rAst = 0;
@@ -32,13 +33,13 @@ public class ParametricFractional extends Approach {
 				paramModel.solve();
 				
 				objVal = paramModel.getObjValue(); it++;
-				printLine(it, rAst, (int) paramModel.getValue(paramModel.sumItems), (int) paramModel.getValue(paramModel.sumAisles));
+				printLine(it, rAst, (int) paramModel.getValue(paramModel.sumP), (int) paramModel.getValue(paramModel.sumY));
 				value = paramModel.getObjValue();
 				
-				if(value >= 0 && value <= TOL)
+				if(Math.abs(value) < TOL)
 					break;
 				else {
-					rAst = paramModel.getValue(paramModel.sumItems)/paramModel.getValue(paramModel.sumAisles);
+					rAst = paramModel.getValue(paramModel.sumP)/paramModel.getValue(paramModel.sumY);
 					solution = paramModel.saveSolution();
 					objVal = Math.max(objVal, rAst);
 				}
@@ -46,6 +47,7 @@ public class ParametricFractional extends Approach {
 			
 			logln("");
 			logln("Solution found: " + rAst);
+			logln("Total its: " + it);
 			logln("Proved optimal? " + (paramModel.getStatus() == Status.Optimal) + "\n");
 			
 		} catch(IloException e) {
@@ -61,9 +63,10 @@ public class ParametricFractional extends Approach {
 		logln("Thread count: CPLEX using up to " + paramModel.getNumThreads() + " threads");
 		logln("Variable types: 1 continuous; " + (paramModel.y.length + paramModel.p.length) + " binaries");
 		logln("Time Limit: time limit set to " + MAX_RUNTIME/1000 + " seconds");
+		logln("Considering tolerance: " + TOL);
 		logln("");
 		
-		logln("  it  |    q*    |  N  |  D  |  f(q*)  ");
+		logln("  it  |    q*    |  N  |  D  |   f(q*)  ");
 	}
 	
 	private void printLine(int it, double rAst, int N, int D) throws IloException {
@@ -71,6 +74,6 @@ public class ParametricFractional extends Approach {
 		log(String.format("%9.5f" + " |", rAst));
 		log(String.format("%4" + "s |", (int) N));
 		log(String.format("%4" + "s |", (int) D));
-		logln(String.format("%8.3f" + "", objVal));
+		logln(String.format("%10.6f" + "", objVal));
 	}
 }
