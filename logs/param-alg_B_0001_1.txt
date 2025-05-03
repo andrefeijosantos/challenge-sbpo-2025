@@ -1,8 +1,0 @@
-SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)
-Thread count: CPLEX using up to 16 threads
-Variable types: 1 continuous; 11506 binaries
-Time Limit: time limit set to 600 seconds
-Considering tolerance: 1.0E-6
-
-  it  |    q*    |  N  |  D  |   f(q*)  
-    1 |  0,00000 |3968 | 185 |3968,000000

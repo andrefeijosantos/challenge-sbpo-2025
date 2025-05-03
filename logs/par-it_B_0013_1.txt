@@ -1,8 +1,0 @@
-SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)
-Approach: Parallel Iterative Solver
-Thread count: CPLEX using up to 20 threads
-Variable types: 1 continuous; 38697 integer (38697 binaries)
-
-  Thread  |  h  |  H  |  LB  |  UB  |  Num. Items  |  Incumbent  |  Status  
-       DE | 483 |   1 | 6610 |19417 |        19417 |   40,200828 |   Optimal
-       DE | 482 |   1 |19377 |19417 |        19417 |   40,284232 |   Optimal
