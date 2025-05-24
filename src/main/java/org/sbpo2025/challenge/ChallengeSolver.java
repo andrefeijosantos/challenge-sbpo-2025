@@ -15,7 +15,8 @@ enum Method {
 	ParallelIterative,
 	ParamFractional,
 	RLFractional,
-	ItRL
+	ItRL,
+	TabuSearch
 }
 
 enum ItemsDistribution {
@@ -80,6 +81,11 @@ public class ChallengeSolver {
 		    		
 		        	solution = model2.optimize();
 	        	}
+	    		break;
+	    		
+	    	case TabuSearch:
+	    		TSHeuristic tb = new TSHeuristic(this.inst, stopWatch, getTimeLimitInSeconds());
+	        	solution = tb.optimize();
 	    		break;
     	}
     	
