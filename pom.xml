@@ -24,12 +24,13 @@
            <version>22.11</version>
            <scope>compile</scope>
        </dependency>
-       <dependency>
+       <!-- !!!!!! TODO LEMBRAR DE DESCOMENTAR !!!!!
+		<dependency>
            <groupId>com.google.ortools</groupId>
            <artifactId>ortools-java</artifactId>
            <version>9.11.4210</version>
            <scope>compile</scope>
-       </dependency>
+       </dependency>-->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>

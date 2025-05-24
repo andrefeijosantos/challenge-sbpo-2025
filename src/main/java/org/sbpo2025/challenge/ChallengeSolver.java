@@ -2,6 +2,8 @@ package org.sbpo2025.challenge;
 
 import org.apache.commons.lang3.time.StopWatch;
 
+import ilog.concert.IloException;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -9,13 +11,28 @@ import java.util.Set;
 
 enum Method {
 	Iterative,
-	ParallelIterative
+	GeneralParallelIterative,
+	ParallelIterative,
+	ParamFractional,
+	RLFractional,
+	ItRL
+}
+
+enum ItemsDistribution {
+	AllOneItem,
+	MixedItemsQuantities,
+	AllMultipleItems
 }
 
 public class ChallengeSolver {
 	
     ChallengeSolution solution = null;
     private Instance inst;
+    
+    // Time Limit
+    int HOURS   = 4, 
+        MINUTES = 0, 
+        SECONDS = 0;
 
     public ChallengeSolver(Instance instance) {
         this.inst = instance;
@@ -24,13 +41,45 @@ public class ChallengeSolver {
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
     	switch(method) {
 	    	case Iterative:
-	        	Iterative itModel = new Iterative(this.inst, stopWatch, 600000, 30000);
+	        	Iterative itModel = new Iterative(this.inst, stopWatch, getTimeLimitInSeconds(), 30000);
 	        	solution = itModel.optimize();
 	        	break;
+
+	    	case GeneralParallelIterative:
+	    		ParallelIterative genParallelIterative = new ParallelIterative(this.inst, ItemsDistribution.AllMultipleItems, stopWatch, getTimeLimitInSeconds());
+	        	solution = genParallelIterative.optimize();
+	    		break;
 	        	
 	    	case ParallelIterative:
-	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, 590000);
+	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, getItemsDistribution(), stopWatch, getTimeLimitInSeconds());
 	        	solution = parallelIterative.optimize();
+	    		break;
+	    		
+	    	case ParamFractional:
+	    		ParametricFractional paramFractional = new ParametricFractional(this.inst, stopWatch, getTimeLimitInSeconds());
+	        	solution = paramFractional.optimize();
+	    		break;
+	    		
+	    	case RLFractional:
+	    		RefLinFractional refLinFractional = new RefLinFractional(this.inst, stopWatch, getTimeLimitInSeconds());
+	        	solution = refLinFractional.optimize();
+	    		break;
+	    	
+	    	case ItRL:
+	    		ParallelIterative model1 = new ParallelIterative(this.inst, getItemsDistribution(), stopWatch, (int)(3.5*60*1000));
+	    		RefLinFractional model2 = new RefLinFractional(this.inst, stopWatch, getTimeLimitInSeconds());
+	        	solution = model1.optimize();
+	    		
+	        	if(!model1.optimal) {
+		    		try {
+		    			model2.init(model1, solution);
+		    			model1 = null;
+		    		} catch(IloException e) {
+		    			e.printStackTrace();
+		    		}
+		    		
+		        	solution = model2.optimize();
+	        	}
 	    		break;
     	}
     	
@@ -41,8 +90,26 @@ public class ChallengeSolver {
     	
         return solution;
     }
-
-
+    
+    protected ItemsDistribution getItemsDistribution() {
+    	ItemsDistribution res = ItemsDistribution.AllOneItem;
+    	
+    	int multipleItemsCnt = 0;
+    	for(int o = 0; o < inst.orders.size(); o++)
+    		if(inst.orders.get(o).keySet().size() > 1) {
+    			res = ItemsDistribution.MixedItemsQuantities;
+    			multipleItemsCnt++;
+    		}
+    	
+    	if(multipleItemsCnt == inst.orders.size())
+    		res = ItemsDistribution.AllMultipleItems;
+    	
+    	return res;
+    }
+    
+    protected int getTimeLimitInSeconds() {
+    	return 1000*(3600 * HOURS + 60 * MINUTES + SECONDS);
+    }
 
     protected boolean isSolutionFeasible() {
         Set<Integer> selectedOrders = solution.orders();

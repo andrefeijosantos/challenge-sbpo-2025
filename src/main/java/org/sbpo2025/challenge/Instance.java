@@ -6,9 +6,14 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 
 public class Instance {
@@ -22,6 +27,12 @@ public class Instance {
     public List<Map<Integer, Integer>> itemsPerAisles;
     public int LB, UB, n;
 
+	// Optimizations.
+	BitSet wontBuild, wontUse;
+	ArrayList<Integer> Q, D;
+	Set<Pair<Integer, Integer>> mutexOrders;
+	BitSet easy;
+    
     public Instance(String file) {
         readInput(file);
     }
@@ -59,6 +70,20 @@ public class Instance {
             UB = Integer.parseInt(bounds[1]);
 
             this.reader.close();
+            
+            
+            // Check for optimizations
+    		Q = new ArrayList<Integer>(n);
+    		D = new ArrayList<Integer>(n);
+
+    		mutexOrders = new HashSet<Pair<Integer, Integer>>();
+    		
+    		wontBuild = new BitSet(orders.size()); wontBuild.clear();
+    		wontUse   = new BitSet(n);             wontUse.clear();
+    		easy = new BitSet(n);                  easy.clear();
+            
+            getInstanceInfo();
+            
         } catch (IOException e) {
             System.err.println("Error reading input from " + inputFilePath);
             e.printStackTrace();
@@ -136,5 +161,138 @@ public class Instance {
     	for(int o = 0; o < orders.size(); o++) 
     		for(int i : orders.get(o).keySet())
     			itemsPerOrders.get(i).put(o, orders.get(o).get(i));
+    }
+    
+    protected void getInstanceInfo() {		
+		// Calculate demand and quantity of a specific item.
+		for(int i = 0; i < n; i++) {			
+			int Di = 0;
+			for(int o : itemsPerOrders.get(i).keySet())
+				Di += orders.get(o).get(i);
+			D.add(Di);
+			
+			int Qi = 0;
+			for(int a : itemsPerAisles.get(i).keySet())
+				Qi += aisles.get(a).get(i);
+			Q.add(Qi);
+		}
+
+		// Check for orders that won't be built for sure.
+		for(int o = 0; o < orders.size(); o++) {			
+			for(int i : orders.get(o).keySet())
+				if(Q.get(i) < orders.get(o).get(i)) {
+					wontBuild.set(o);
+					break;
+				}
+		}
+		
+		// If an item is only used in orders that won't be built, then
+		// we'll won't use it.
+		for(int i = 0; i < n; i++) {						
+			boolean wont = true;
+			Set<Integer> aux = new HashSet<Integer>();
+			for(int o : itemsPerOrders.get(i).keySet()) {
+				if(!wontBuild.get(o)) {
+					wont = false;
+				} else {
+					D.set(i, Math.max(0, D.get(i) - orders.get(o).get(i)));
+					aux.add(o);
+				}
+			}
+			for(int o : aux)
+				itemsPerOrders.get(i).remove(o);
+			if(wont) wontUse.set(i);
+		}
+		
+		// Coefficient optimizations.
+		for(int i = 0; i < n; i++) {
+			int totalI = 0;
+			for(int o : itemsPerOrders.get(i).keySet()) {
+				if(wontBuild.get(o)) continue;
+				totalI += orders.get(o).get(i);
+			}
+			
+			for(int a : itemsPerAisles.get(i).keySet())
+				if(totalI < aisles.get(a).get(i)) {
+					Q.set(i, Q.get(i) - (aisles.get(a).get(i) - totalI));
+					aisles.get(a).put(i, totalI);
+					itemsPerAisles.get(i).put(a, totalI);
+				}
+		}
+		
+		MaxSubsetSum maxSubSetSum = new MaxSubsetSum();
+		for(int i = 0; i < n; i++) {
+			if(wontUse.get(i) || itemsPerAisles.get(i).keySet().size() > 1)
+				continue;
+			
+			int a = itemsPerAisles.get(i).keySet().iterator().next();
+			int[] ds = new int[itemsPerOrders.get(i).size()];
+			
+			// Checking if the quantity of these items is correct
+			assert aisles.get(a).get(i) == Q.get(i);
+			
+			int j = 0;
+			for(int o : itemsPerOrders.get(i).keySet())
+				if(!wontBuild.get(o)) {
+					ds[j] = itemsPerOrders.get(i).get(o);
+					j++;
+				}
+			
+			int totalI = maxSubSetSum.solve(ds, j, aisles.get(a).get(i));
+			aisles.get(a).put(i, totalI);
+			itemsPerAisles.get(i).put(a, totalI);
+		}
+		
+		// Items that its demand is covered by getting ANY aisles that has it.
+		for(int i = 0; i < n; i++) {
+			boolean test = true;
+			for(int a : itemsPerAisles.get(i).keySet())
+				if(aisles.get(a).get(i) < D.get(i))
+					test = false;
+			if(test) easy.set(i);
+		}
+		
+		// Remove (Qi - Di) unique orders when Qi < Di.
+		for(int i = 0; i < n; i++) {
+			int sumUnits = 0;
+			for(int o : itemsPerOrders.get(i).keySet()) {
+				if(orders.get(o).get(i) == 1 && orders.get(o).size() == 1) {
+					sumUnits++;
+					if(sumUnits > Q.get(i))
+						wontBuild.set(o);
+				}
+			}
+		}
+
+		// Check for mutual exclusive orders.
+		for(int o1 = 1; o1 < orders.size(); o1++) {
+			if(wontBuild.get(o1)) continue;
+
+			for(int i : orders.get(o1).keySet()) {
+				if(wontUse.get(i)) continue;
+				
+				for(int o2 : itemsPerOrders.get(i).keySet()) 
+					if(!wontBuild.get(o2) && o2 < o1 && (orders.get(o1).get(i) + orders.get(o2).get(i) > Q.get(i)))
+						mutexOrders.add(Pair.of(o1, o2));
+			}
+		}
+    }
+    
+    public void loose() {
+    	reader = null;
+    	
+        itemsPerOrders = null;
+        itemsPerAisles = null;
+
+    	wontBuild = null;
+    	wontUse = null;
+    	
+    	Q = null;
+    	D = null;
+    	
+    	mutexOrders = null;
+    	easy = null;
+    	
+    	System.gc();
     }
 }

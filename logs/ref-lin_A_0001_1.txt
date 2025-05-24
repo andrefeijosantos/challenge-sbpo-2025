@@ -1,0 +1,56 @@
+SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)
+Thread count: CPLEX using up to 16 threads
+Variable types: 1 continuous; 177 binaries
+
+Version identifier: 22.1.1.0 | 2022-11-27 | 9160aff4d
+CPXPARAM_Threads                                 16
+CPXPARAM_TimeLimit                               599
+Tried aggregator 1 time.
+MIP Presolve eliminated 69 rows and 0 columns.
+MIP Presolve modified 1 coefficients.
+Reduced MIP has 619 rows, 353 columns, and 1905 nonzeros.
+Reduced MIP has 176 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (2.62 ticks)
+Probing time = 0.00 sec. (0.11 ticks)
+Tried aggregator 1 time.
+Detecting symmetries...
+Reduced MIP has 619 rows, 353 columns, and 1905 nonzeros.
+Reduced MIP has 176 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (1.23 ticks)
+Probing time = 0.00 sec. (0.11 ticks)
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: deterministic, using up to 16 threads.
+Root relaxation solution time = 0.00 sec. (2.25 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+      0     0       16.7045    15                     16.7045      135         
+*     0+    0                           15.0000       16.7045            11.36%
+      0     0       16.6709    14       15.0000       Cuts: 2      140   11.14%
+      0     0       16.6709    14       15.0000       Cuts: 2      141   11.14%
+      0     0       16.6709    14       15.0000   LiftProj: 1      142   11.14%
+*     0+    0                           15.0000       16.6709            11.14%
+      0     0        cutoff             15.0000       15.0000      142    0.00%
+Elapsed time = 0.08 sec. (30.05 ticks, tree = 0.01 MB, solutions = 2)
+
+Lift and project cuts applied:  2
+Gomory fractional cuts applied:  1
+
+Root node processing (before b&c):
+  Real time             =    0.08 sec. (30.07 ticks)
+Parallel b&c, 16 threads:
+  Real time             =    0.00 sec. (0.00 ticks)
+  Sync time (average)   =    0.00 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =    0.08 sec. (30.07 ticks)
+
+Solution found: 15.000000000000002
+Proved optimal? true
+
+Is Feasible: true
+Objective Value: 15.0
+Time: 00:00:00.150
+Output written to test_out.txt

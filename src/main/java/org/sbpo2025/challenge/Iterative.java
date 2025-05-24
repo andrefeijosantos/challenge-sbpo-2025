@@ -127,8 +127,8 @@ public class Iterative extends Approach {
 	private void print_line(int h) throws IloException {
 		log(String.format("%4" + "s |", h));
 		log(String.format("%4" + "s |", MAX_AISLES));
-		log(String.format("%5" + "s |", (int) model.z.getLB()));
-		log(String.format("%5" + "s |", (int) model.z.getUB()));
+		log(String.format("%5" + "s |", (int) model.getLB()));
+		log(String.format("%5" + "s |", (int) model.getUB()));
 		
 		if(objVal > 0) log(String.format("%12.6f" + " |",  objVal));
 		else log(String.format("%12" + "s |", "-"));

@@ -1,0 +1,84 @@
+SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)
+Approach: Parallel Iterative Solver
+Thread count: CPLEX using up to 8 threads
+Variable types: 1 continuous; 374 integer (374 binaries)
+
+  Thread  |  h  |  H  |  LB  |  UB  |  Num. Items  |  Incumbent  |  Status  
+       AC |   1 | 304 |   52 |  153 |            - |           - |Infeasible
+       DE | 304 |   1 |   52 |  153 |          153 |    0,503289 |   Optimal
+       DE | 303 |   2 |  153 |  153 |          153 |    0,504950 |   Optimal
+       AC |   2 | 302 |   52 |  153 |            - |           - |Infeasible
+       DE | 302 |   3 |  153 |  153 |          153 |    0,506623 |   Optimal
+       AC |   3 | 301 |   52 |  153 |            - |           - |Infeasible
+       DE | 301 |   4 |  153 |  153 |          153 |    0,508306 |   Optimal
+       DE | 300 |   4 |  153 |  153 |          153 |    0,510000 |   Optimal
+       AC |   4 | 299 |   52 |  153 |            - |           - |Infeasible
+       DE | 299 |   5 |  153 |  153 |          153 |    0,511706 |   Optimal
+       AC |   5 | 298 |   52 |  153 |            - |           - |Infeasible
+       DE | 298 |   6 |  153 |  153 |          153 |    0,513423 |   Optimal
+       DE | 297 |   6 |  153 |  153 |          153 |    0,515152 |   Optimal
+       AC |   6 | 296 |   52 |  153 |            - |           - |Infeasible
+       DE | 296 |   7 |  153 |  153 |          153 |    0,516892 |   Optimal
+       DE | 295 |   7 |  153 |  153 |          153 |    0,518644 |   Optimal
+       AC |   7 | 294 |   52 |  153 |            - |           - |Infeasible
+       DE | 294 |   8 |  153 |  153 |          153 |    0,520408 |   Optimal
+       AC |   8 | 293 |   52 |  153 |            - |           - |Infeasible
+       DE | 293 |   9 |  153 |  153 |          153 |    0,522184 |   Optimal
+       DE | 292 |   9 |  153 |  153 |          153 |    0,523973 |   Optimal
+       AC |   9 | 291 |   52 |  153 |            - |           - |Infeasible
+       DE | 291 |  10 |  153 |  153 |          153 |    0,525773 |   Optimal
+       DE | 290 |  10 |  153 |  153 |          153 |    0,527586 |   Optimal
+       AC |  10 | 289 |   52 |  153 |            - |           - |Infeasible
+       DE | 289 |  11 |  153 |  153 |          153 |    0,529412 |   Optimal
+       DE | 288 |  11 |  153 |  153 |          153 |    0,531250 |   Optimal
+       AC |  11 | 287 |   52 |  153 |            - |           - |Infeasible
+       DE | 287 |  12 |  153 |  153 |          153 |    0,533101 |   Optimal
+       DE | 286 |  12 |  153 |  153 |          153 |    0,534965 |   Optimal
+       DE | 285 |  12 |  153 |  153 |          153 |    0,536842 |   Optimal
+       DE | 284 |  12 |  153 |  153 |          153 |    0,538732 |   Optimal
+       DE | 283 |  12 |  153 |  153 |          153 |    0,540636 |   Optimal
+       DE | 282 |  12 |  153 |  153 |          153 |    0,542553 |   Optimal
+       DE | 281 |  12 |  153 |  153 |          153 |    0,544484 |   Optimal
+       DE | 280 |  12 |  153 |  153 |          153 |    0,546429 |   Optimal
+       DE | 279 |  12 |  153 |  153 |          153 |    0,548387 |   Optimal
+       DE | 278 |  12 |  153 |  153 |          153 |    0,550360 |   Optimal
+       DE | 277 |  12 |  153 |  153 |          153 |    0,552347 |   Optimal
+       DE | 276 |  12 |  153 |  153 |          153 |    0,554348 |   Optimal
+       DE | 275 |  12 |  153 |  153 |          153 |    0,556364 |   Optimal
+       DE | 274 |  12 |  153 |  153 |          153 |    0,558394 |   Optimal
+       DE | 273 |  12 |  153 |  153 |          153 |    0,560440 |   Optimal
+       AC |  12 |  34 |   52 |  153 |           53 |    4,416667 |   Optimal
+       DE | 272 |  13 |  153 |  153 |            - |    0,562500 |  Feasible
+       DE |  34 |  13 |  151 |  153 |            - |    0,562500 |Infeasible
+       DE |  33 |  13 |  146 |  150 |            - |    0,562500 |Infeasible
+       DE |  32 |  13 |  142 |  145 |            - |    0,562500 |Infeasible
+       DE |  31 |  13 |  137 |  141 |            - |    0,562500 |Infeasible
+       DE |  30 |  13 |  133 |  136 |            - |    0,562500 |Infeasible
+       DE |  29 |  13 |  129 |  132 |            - |    0,562500 |Infeasible
+       DE |  28 |  13 |  124 |  128 |            - |    0,562500 |Infeasible
+       AC |  13 |  27 |   58 |  153 |            - |    4,416667 |Infeasible
+       DE |  27 |  14 |  120 |  123 |            - |    0,562500 |Infeasible
+       DE |  26 |  14 |  115 |  119 |            - |    0,562500 |Infeasible
+       DE |  25 |  14 |  111 |  114 |            - |    0,562500 |Infeasible
+       DE |  24 |  14 |  107 |  110 |            - |    0,562500 |Infeasible
+       DE |  23 |  14 |  102 |  106 |            - |    0,562500 |Infeasible
+       AC |  14 |  22 |   62 |  123 |            - |    4,416667 |Infeasible
+       DE |  22 |  15 |   98 |  101 |            - |    0,562500 |Infeasible
+       DE |  21 |  15 |   93 |   97 |            - |    0,562500 |Infeasible
+       DE |  20 |  15 |   89 |   92 |            - |    0,562500 |Infeasible
+       AC |  15 |  19 |   67 |  101 |            - |    4,416667 |Infeasible
+       DE |  19 |  16 |   84 |   88 |            - |    0,562500 |Infeasible
+       DE |  18 |  16 |   80 |   83 |            - |    0,562500 |Infeasible
+       AC |  16 |  17 |   71 |   88 |            - |    4,416667 |Infeasible
+       DE |  17 |  17 |   76 |   79 |            - |    0,562500 |Infeasible
+       AC |  17 |  16 |   76 |   79 |            - |    4,416667 |   Unknown
+
+Ascending Thread finished at: 18
+Decending Thread finished at: 16
+Solution found: 4.416666666666667
+Proved optimal? true
+
+Is Feasible: true
+Objective Value: 4.416666666666667
+Time: 00:00:00.745
+Output written to test_out.txt

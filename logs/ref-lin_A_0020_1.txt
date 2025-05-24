@@ -1,0 +1,60 @@
+SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)
+Thread count: CPLEX using up to 16 threads
+Variable types: 1 continuous; 10 binaries
+
+Version identifier: 22.1.1.0 | 2022-11-27 | 9160aff4d
+CPXPARAM_Threads                                 16
+CPXPARAM_TimeLimit                               599
+Tried aggregator 2 times.
+MIP Presolve eliminated 1 rows and 0 columns.
+MIP Presolve modified 11 coefficients.
+Aggregator did 1 substitutions.
+Reduced MIP has 36 rows, 20 columns, and 105 nonzeros.
+Reduced MIP has 9 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (0.09 ticks)
+Probing time = 0.00 sec. (0.01 ticks)
+Tried aggregator 1 time.
+Detecting symmetries...
+Reduced MIP has 36 rows, 20 columns, and 105 nonzeros.
+Reduced MIP has 9 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.00 sec. (0.05 ticks)
+Probing time = 0.00 sec. (0.01 ticks)
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: deterministic, using up to 16 threads.
+Root relaxation solution time = 0.00 sec. (0.07 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+      0     0        5.9412     5                      5.9412        8         
+*     0+    0                            3.0000        5.9412            98.04%
+      0     0        5.7890     7        3.0000       Cuts: 9       17   92.97%
+      0     0        5.6612     8        3.0000       Cuts: 5       27   88.71%
+      0     0        5.6593     7        3.0000       Cuts: 5       31   88.64%
+      0     0        5.6470     7        3.0000   Flowcuts: 2       33   88.23%
+Detecting symmetries...
+*     0+    0                            5.0000        5.6470            12.94%
+      0     0        cutoff              5.0000        5.0000       33    0.00%
+Elapsed time = 0.09 sec. (1.89 ticks, tree = 0.01 MB, solutions = 2)
+
+Flow cuts applied:  3
+Mixed integer rounding cuts applied:  1
+Gomory fractional cuts applied:  4
+
+Root node processing (before b&c):
+  Real time             =    0.09 sec. (1.89 ticks)
+Parallel b&c, 16 threads:
+  Real time             =    0.00 sec. (0.00 ticks)
+  Sync time (average)   =    0.00 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =    0.09 sec. (1.89 ticks)
+
+Solution found: 5.0
+Proved optimal? true
+
+Is Feasible: true
+Objective Value: 5.0
+Time: 00:00:00.161
+Output written to test_out.txt

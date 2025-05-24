@@ -1,0 +1,54 @@
+SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)
+Thread count: CPLEX using up to 16 threads
+Variable types: 1 continuous; 2006 binaries
+
+Version identifier: 22.1.1.0 | 2022-11-27 | 9160aff4d
+CPXPARAM_Threads                                 16
+CPXPARAM_TimeLimit                               599
+Tried aggregator 2 times.
+MIP Presolve eliminated 2226 rows and 0 columns.
+MIP Presolve modified 7 coefficients.
+Aggregator did 1622 substitutions.
+Reduced MIP has 3848 rows, 2375 columns, and 16587 nonzeros.
+Reduced MIP has 376 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.03 sec. (44.70 ticks)
+Found incumbent of value 4.030303 after 0.05 sec. (71.05 ticks)
+Probing time = 0.00 sec. (1.98 ticks)
+Tried aggregator 1 time.
+Detecting symmetries...
+MIP Presolve eliminated 760 rows and 646 columns.
+Reduced MIP has 3088 rows, 1729 columns, and 13400 nonzeros.
+Reduced MIP has 376 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.02 sec. (16.96 ticks)
+Probing time = 0.00 sec. (1.08 ticks)
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: deterministic, using up to 16 threads.
+Root relaxation solution time = 0.06 sec. (109.00 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+*     0+    0                            4.0303     2279.0007              --- 
+*     0+    0                            5.0485     2279.0007              --- 
+      0     0      113.0000     1        5.0485      113.0000     1239     --- 
+*     0+    0                          108.0000      113.0000             4.63%
+      0     0        cutoff            108.0000                   1241     --- 
+Elapsed time = 0.14 sec. (224.48 ticks, tree = 0.01 MB, solutions = 3)
+
+Root node processing (before b&c):
+  Real time             =    0.14 sec. (224.71 ticks)
+Parallel b&c, 16 threads:
+  Real time             =    0.00 sec. (0.00 ticks)
+  Sync time (average)   =    0.00 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =    0.14 sec. (224.71 ticks)
+
+Solution found: 108.0
+Proved optimal? true
+
+Is Feasible: false
+Objective Value: 114.0
+Time: 00:00:00.286
+Output written to test_out.txt

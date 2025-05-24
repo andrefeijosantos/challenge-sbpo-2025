@@ -1,0 +1,63 @@
+SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)
+Thread count: CPLEX using up to 16 threads
+Variable types: 1 continuous; 2391 binaries
+
+Version identifier: 22.1.1.0 | 2022-11-27 | 9160aff4d
+CPXPARAM_Threads                                 16
+CPXPARAM_TimeLimit                               599
+Tried aggregator 2 times.
+MIP Presolve eliminated 2656 rows and 0 columns.
+MIP Presolve modified 71 coefficients.
+Aggregator did 1982 substitutions.
+Reduced MIP has 4613 rows, 2765 columns, and 20228 nonzeros.
+Reduced MIP has 391 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.05 sec. (65.47 ticks)
+Found incumbent of value 5.320896 after 0.06 sec. (104.72 ticks)
+Probing time = 0.00 sec. (7.80 ticks)
+Tried aggregator 1 time.
+Detecting symmetries...
+MIP Presolve eliminated 782 rows and 705 columns.
+Reduced MIP has 3831 rows, 2060 columns, and 17023 nonzeros.
+Reduced MIP has 391 binaries, 0 generals, 0 SOSs, and 0 indicators.
+Presolve time = 0.03 sec. (21.46 ticks)
+Probing time = 0.02 sec. (5.90 ticks)
+MIP emphasis: balance optimality and feasibility.
+MIP search method: dynamic search.
+Parallel mode: deterministic, using up to 16 threads.
+Root relaxation solution time = 0.14 sec. (171.38 ticks)
+
+        Nodes                                         Cuts/
+   Node  Left     Objective  IInf  Best Integer    Best Bound    ItCnt     Gap
+
+*     0+    0                            5.3209     2586.0071              --- 
+*     0+    0                            7.4552     2586.0071              --- 
+      0     0      220.5147    49        7.4552      220.5147     1708     --- 
+*     0+    0                          164.0000      220.5147            34.46%
+*     0+    0                          202.0000      220.5147             9.17%
+      0     0      218.2012    77      202.0000     Cuts: 145     1778    3.96%
+      0     0      216.9815    86      202.0000      Cuts: 82     1835    3.96%
+      0     0        cutoff            202.0000      202.0000     1884    0.00%
+Elapsed time = 0.36 sec. (496.41 ticks, tree = 0.01 MB, solutions = 4)
+
+Implied bound cuts applied:  4
+Flow cuts applied:  58
+Mixed integer rounding cuts applied:  180
+Lift and project cuts applied:  2
+Gomory fractional cuts applied:  7
+
+Root node processing (before b&c):
+  Real time             =    0.36 sec. (496.72 ticks)
+Parallel b&c, 16 threads:
+  Real time             =    0.00 sec. (0.00 ticks)
+  Sync time (average)   =    0.00 sec.
+  Wait time (average)   =    0.00 sec.
+                          ------------
+Total (root+branch&cut) =    0.36 sec. (496.72 ticks)
+
+Solution found: 202.0
+Proved optimal? true
+
+Is Feasible: false
+Objective Value: 210.0
+Time: 00:00:00.498
+Output written to test_out.txt
