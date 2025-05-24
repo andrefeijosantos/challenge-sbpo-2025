@@ -1,0 +1,31 @@
+SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)
+Approach: Parallel Iterative Solver
+Thread count: CPLEX using up to 8 threads
+Variable types: 1 continuous; 206 integer (206 binaries)
+
+  Thread  |  h  |  H  |  LB  |  UB  |  Num. Items  |  Incumbent  |  Status  
+       AC |   1 | 124 |   33 |  106 |            - |           - |Infeasible
+       DE | 124 |   1 |   33 |  106 |          106 |    0,854839 |   Optimal
+       AC |   2 | 123 |   33 |  106 |            - |           - |Infeasible
+       DE | 123 |   3 |  106 |  106 |          106 |    0,861789 |   Optimal
+       DE | 122 |   3 |  106 |  106 |          106 |    0,868852 |   Optimal
+       DE | 121 |   3 |  106 |  106 |          106 |    0,876033 |   Optimal
+       AC |   3 |   9 |   33 |  106 |           35 |   11,666667 |   Optimal
+       DE | 120 |   4 |  106 |  106 |            - |    0,876033 |   Unknown
+       AC |   4 |   8 |   47 |  106 |           48 |   12,000000 |   Optimal
+       DE |   9 |   5 |  106 |  106 |            - |    0,876033 |   Unknown
+       DE |   8 |   5 |   97 |  106 |            - |    0,876033 |Infeasible
+       AC |   5 |   7 |   61 |  106 |            - |   12,000000 |Infeasible
+       AC |   6 |   7 |   73 |   96 |            - |   12,000000 |Infeasible
+       DE |   7 |   7 |   85 |   96 |            - |    0,876033 |Infeasible
+       AC |   7 |   6 |   85 |   96 |            - |   12,000000 |   Unknown
+
+Ascending Thread finished at: 8
+Decending Thread finished at: 6
+Solution found: 12.0
+Proved optimal? true
+
+Is Feasible: true
+Objective Value: 12.0
+Time: 00:00:00.167
+Output written to test_out.txt

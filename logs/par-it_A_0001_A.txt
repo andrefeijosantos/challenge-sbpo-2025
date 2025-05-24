@@ -1,0 +1,21 @@
+SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)
+Approach: Parallel Iterative Solver
+Thread count: CPLEX using up to 8 threads
+Variable types: 1 continuous; 177 integer (177 binaries)
+
+  Thread  |  h  |  H  |  LB  |  UB  |  Num. Items  |  Incumbent  |  Status  
+       AC |   1 | 116 |   30 |   68 |            - |           - |Infeasible
+       AC |   2 |   4 |   30 |   68 |           30 |   15,000000 |   Optimal
+       DE | 116 |   1 |   30 |   68 |           68 |    0,586207 |   Optimal
+       AC |   3 |   4 |   46 |   68 |            - |   15,000000 |Infeasible
+       DE |   4 |   3 |   61 |   68 |            - |    0,586207 |Infeasible
+
+Ascending Thread finished at: 4
+Decending Thread finished at: 3
+Solution found: 15.0
+Proved optimal? true
+
+Is Feasible: true
+Objective Value: 15.0
+Time: 00:00:00.127
+Output written to test_out.txt

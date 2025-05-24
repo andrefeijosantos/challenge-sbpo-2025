@@ -1,0 +1,29 @@
+SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)
+Approach: Parallel Iterative Solver
+Thread count: CPLEX using up to 8 threads
+Variable types: 1 continuous; 1196 integer (1196 binaries)
+
+  Thread  |  h  |  H  |  LB  |  UB  |  Num. Items  |  Incumbent  |  Status  
+       DE |  88 |   1 |  149 |  686 |          686 |    7,795455 |   Optimal
+       AC |   1 |  88 |  149 |  686 |            - |    1,000000 |Infeasible
+       DE |  87 |   2 |  679 |  686 |          686 |    7,885057 |   Optimal
+       DE |  86 |   2 |  679 |  686 |          686 |    7,976744 |   Optimal
+       AC |   2 |   8 |  149 |  686 |          170 |   85,000000 |   Optimal
+       DE |  85 |   3 |  679 |  686 |            - |    7,976744 |   Unknown
+       DE |   8 |   3 |  681 |  686 |            - |    7,976744 |Infeasible
+       AC |   3 |   7 |  256 |  686 |            - |   85,000000 |Infeasible
+       DE |   7 |   4 |  596 |  680 |            - |    7,976744 |Infeasible
+       AC |   4 |   6 |  341 |  680 |            - |   85,000000 |Infeasible
+       DE |   6 |   5 |  511 |  595 |            - |    7,976744 |Infeasible
+       AC |   5 |   5 |  426 |  595 |            - |   85,000000 |Infeasible
+       DE |   5 |   6 |  426 |  510 |            - |    7,976744 |   Unknown
+
+Ascending Thread finished at: 6
+Decending Thread finished at: 4
+Solution found: 85.0
+Proved optimal? true
+
+Is Feasible: true
+Objective Value: 85.0
+Time: 00:00:00.267
+Output written to test_out.txt

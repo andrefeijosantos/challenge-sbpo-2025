@@ -68,7 +68,7 @@ public class ItModel extends BasicModel {
         	sumY.addTerm(1, y[a]);
         
         for (int i = 0; i < inst.n; i++) {
-        	if(inst.wontUse.get(i)/* || inst.easy.get(i)*/) continue;
+        	if(inst.wontUse.get(i) || inst.easy.get(i)) continue;
         	
         	IloLinearNumExpr sumOrders = model.linearNumExpr();
         	for (int o : inst.itemsPerOrders.get(i).keySet())

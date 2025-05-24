@@ -1,40 +1,9 @@
-@echo off
-set t=0
+run_A_par-it.bat
+run_A_param-alg.bat
+run_A_ref-lin.bat
 
-for /L %%l in (1,1,5) do (
-    for /L %%i in (1,1,9) do (
-        if not exist "logs/par-it_000%%i_%%l.txt" (
-            set t=%%l
-            goto :breakLoop
-        )
-    )
-
-    for /L %%i in (10,1,20) do (
-        if not exist "logs/par-it_00%%i_%%l.txt" (
-            set t=%%l
-            goto :breakLoop
-        )
-    )
-)
-
-:breakLoop
-@echo on
-
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0001.txt test_out.txt
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0002.txt test_out.txt
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0003.txt test_out.txt
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0004.txt test_out.txt
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0005.txt test_out.txt
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0006.txt test_out.txt 
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0007.txt test_out.txt
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0008.txt test_out.txt 
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0009.txt test_out.txt
-
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0010.txt test_out.txt
-@REM java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0011.txt test_out.txt > logs/par-it_0011_%t%.txt
-@REM java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0012.txt test_out.txt > logs/par-it_0012_%t%.txt
-@REM java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0013.txt test_out.txt > logs/par-it_0013_%t%.txt
-@REM java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0014.txt test_out.txt > logs/par-it_0014_%t%.txt
-java -Djava.library.path=C:/Applications/CPLEX_Studio2211/opl/bin/x64_win64 -jar target/ChallengeSBPO2025-1.0.jar datasets/b/instance_0015.txt test_out.txt
+run_B_par-it.bat
+run_B_param-alg.bat
+run_B_ref-lin.bat
 
 PAUSE

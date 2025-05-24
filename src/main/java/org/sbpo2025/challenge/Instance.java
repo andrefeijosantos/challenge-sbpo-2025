@@ -214,9 +214,33 @@ public class Instance {
 			
 			for(int a : itemsPerAisles.get(i).keySet())
 				if(totalI < aisles.get(a).get(i)) {
+					Q.set(i, Q.get(i) - (aisles.get(a).get(i) - totalI));
 					aisles.get(a).put(i, totalI);
 					itemsPerAisles.get(i).put(a, totalI);
 				}
+		}
+		
+		MaxSubsetSum maxSubSetSum = new MaxSubsetSum();
+		for(int i = 0; i < n; i++) {
+			if(wontUse.get(i) || itemsPerAisles.get(i).keySet().size() > 1)
+				continue;
+			
+			int a = itemsPerAisles.get(i).keySet().iterator().next();
+			int[] ds = new int[itemsPerOrders.get(i).size()];
+			
+			// Checking if the quantity of these items is correct
+			assert aisles.get(a).get(i) == Q.get(i);
+			
+			int j = 0;
+			for(int o : itemsPerOrders.get(i).keySet())
+				if(!wontBuild.get(o)) {
+					ds[j] = itemsPerOrders.get(i).get(o);
+					j++;
+				}
+			
+			int totalI = maxSubSetSum.solve(ds, j, aisles.get(a).get(i));
+			aisles.get(a).put(i, totalI);
+			itemsPerAisles.get(i).put(a, totalI);
 		}
 		
 		// Items that its demand is covered by getting ANY aisles that has it.
@@ -252,5 +276,23 @@ public class Instance {
 						mutexOrders.add(Pair.of(o1, o2));
 			}
 		}
+    }
+    
+    public void loose() {
+    	reader = null;
+    	
+        itemsPerOrders = null;
+        itemsPerAisles = null;
+
+    	wontBuild = null;
+    	wontUse = null;
+    	
+    	Q = null;
+    	D = null;
+    	
+    	mutexOrders = null;
+    	easy = null;
+    	
+    	System.gc();
     }
 }

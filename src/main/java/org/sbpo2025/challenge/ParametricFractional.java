@@ -20,8 +20,9 @@ public class ParametricFractional extends Approach {
 	
 	public ChallengeSolution optimize() {
 		try {
-			paramModel.setNumThreads(16);
+			paramModel.setNumThreads(8);
 			printHeader();
+			inst.loose();
 			
 			double rAst = 0;
 			double value;

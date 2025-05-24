@@ -2,6 +2,8 @@ package org.sbpo2025.challenge;
 
 import org.apache.commons.lang3.time.StopWatch;
 
+import ilog.concert.IloException;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -12,7 +14,8 @@ enum Method {
 	GeneralParallelIterative,
 	ParallelIterative,
 	ParamFractional,
-	RLFractional
+	RLFractional,
+	ItRL
 }
 
 enum ItemsDistribution {
@@ -27,8 +30,8 @@ public class ChallengeSolver {
     private Instance inst;
     
     // Time Limit
-    int HOURS   = 0, 
-        MINUTES = 10, 
+    int HOURS   = 4, 
+        MINUTES = 0, 
         SECONDS = 0;
 
     public ChallengeSolver(Instance instance) {
@@ -60,6 +63,23 @@ public class ChallengeSolver {
 	    	case RLFractional:
 	    		RefLinFractional refLinFractional = new RefLinFractional(this.inst, stopWatch, getTimeLimitInSeconds());
 	        	solution = refLinFractional.optimize();
+	    		break;
+	    	
+	    	case ItRL:
+	    		ParallelIterative model1 = new ParallelIterative(this.inst, getItemsDistribution(), stopWatch, (int)(3.5*60*1000));
+	    		RefLinFractional model2 = new RefLinFractional(this.inst, stopWatch, getTimeLimitInSeconds());
+	        	solution = model1.optimize();
+	    		
+	        	if(!model1.optimal) {
+		    		try {
+		    			model2.init(model1, solution);
+		    			model1 = null;
+		    		} catch(IloException e) {
+		    			e.printStackTrace();
+		    		}
+		    		
+		        	solution = model2.optimize();
+	        	}
 	    		break;
     	}
     	

@@ -1,0 +1,18 @@
+SPO Optimizer version 1 (authors: @andrefeijosantos, @PedroFiorio)
+Thread count: CPLEX using up to 16 threads
+Variable types: 1 continuous; 2353 binaries
+Time Limit: time limit set to 600 seconds
+Considering tolerance: 1.0E-6
+
+  it  |    q*    |  N  |  D  |   f(q*)  
+    1 |  0,00000 |2840 | 168 |2840,000000
+    2 | 16,90476 |2840 |  18 |2535,714286
+
+Solution found: 157.77777777777777
+Total its: 2
+Proved optimal? false
+
+Is Feasible: true
+Objective Value: 157.77777777777777
+Time: 00:09:59.719
+Output written to test_out.txt

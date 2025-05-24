@@ -1,5 +1,6 @@
 package org.sbpo2025.challenge;
 
+
 import org.apache.commons.lang3.time.StopWatch;
 
 import ilog.concert.*;
@@ -35,21 +36,27 @@ public class ParallelIterative extends Approach {
 	// Threads informations.
 	int ascendingLastIt = 0;
 	int decendingLastIt = Integer.MAX_VALUE;
+	int decendingLastNotAborted;
+	int ascendingLastNotAborted;
 	
 	// Upper and lower bounds for items.
 	int upperBoundItems;
+	int lowerBoundItems;
 	int ascendingLowerBoundItems;
 	int decendingLowerBoundItems;
 	
 	int MAX_AISLES;
 	int TOTAL_AISLES;
+
+	int Beta;
+	int avoid = -1;
 	
 
 	public ParallelIterative(Instance inst, ItemsDistribution itemsDistribution, StopWatch stopWatch, long timeLimit) {
 		super(inst, stopWatch, timeLimit);
 		
-		ascendingModel = new ItModel(inst, 8);
-		decendingModel = new ItModel(inst, 8);
+		ascendingModel = new ItModel(inst, (int) Math.ceil(Runtime.getRuntime().availableProcessors()/2));
+		decendingModel = new ItModel(inst, (int) Math.floor(Runtime.getRuntime().availableProcessors()/2));
 		
 		decendingAborter = new IloCplex.Aborter();
 		ascendingAborter = new IloCplex.Aborter();
@@ -67,21 +74,22 @@ public class ParallelIterative extends Approach {
 		
 		ascendingIncumbent = inst.LB/TOTAL_AISLES;
 		decendingIncumbent = inst.LB/TOTAL_AISLES;
+
+		Beta = (int) Math.ceil(0.01 * inst.aisles.size());
+		logln("" + 0.01 * inst.aisles.size());
 	}
 
 	
 	public ChallengeSolution optimize() {
 		try {	
 			print_header();
+			inst.loose();
 			
 			// Build and start both threads.
 			ascendingThread = getAscendingThread();
 			decendingThread = getDecendingThread();
 			decendingModel.model.use(decendingAborter);
 			ascendingModel.model.use(ascendingAborter);
-			
-			inst.itemsPerAisles = null;
-			inst.itemsPerOrders = null;
 			
 			ascendingThread.start();
 			decendingThread.start();
@@ -105,6 +113,7 @@ public class ParallelIterative extends Approach {
 			
 			// Check if any thread found  a optimal solution.
 			optimal = ascendingOptimal || decendingOptimal;
+			lowerBoundItems = ascendingLowerBoundItems;
 			
 			logln("");
 			logln("Ascending Thread finished at: " + ascendingLastIt);
@@ -124,19 +133,19 @@ public class ParallelIterative extends Approach {
 			@Override
 			public void run() {	
 				try {
-					for(int h = MAX_AISLES; h > 0; h--) {
+					for(int h = MAX_AISLES; h > 0; h-=Beta) {
 						if(getRemainingTime(stopWatch) <= 5) {
 							logln("Time Limit reached (DE).");
 							decendingTimeOut = true;
 							break;
 						}
-						
+
 						// Set parameters for running the model for h aisles..
 						decendingModel.setTimeLimit(getRemainingTime(stopWatch));
 						
 						// Optimizes model for "num_aisles" aisles.
 						h = Math.min(h, MAX_AISLES);
-						decendingLastIt = h;
+						if(h == avoid) continue;
 						decendingModel.setSumY(h);
 						
 						double bestIncumbent = Math.max(ascendingIncumbent, decendingIncumbent);
@@ -147,6 +156,7 @@ public class ParallelIterative extends Approach {
 						
 						// Optimizes for h aisles.
 						if(!ascendingOptimal && (h >= ascendingLastIt)) {
+							decendingLastIt = h;
 							decendingAborter.clear();
 							decendingModel.solve();
 						}
@@ -160,14 +170,25 @@ public class ParallelIterative extends Approach {
 							}
 							
 							upperBoundItems = (int) decendingModel.getObjValue();
+
 						} else if(decendingModel.getStatus() == IloCplex.Status.Feasible && decendingModel.getObjValue()/h > decendingIncumbent)  {								
 								decendingIncumbent = decendingModel.getObjValue()/h;
 								decendingSolution = decendingModel.saveSolution();
 						} else if(decendingModel.getStatus() == IloCplex.Status.Infeasible)
 							upperBoundItems = ((int) decendingModel.getLB()) - 1;
 						
-						
-						printLine(decendingLastIt, ascendingLastIt, decendingModel, decendingIncumbent, "DE");
+						// Saves the last not aborted iteration (in case other method will be ran after it).
+						if(decendingModel.getStatus() == IloCplex.Status.Infeasible || decendingModel.getStatus() == IloCplex.Status.Optimal)
+							decendingLastNotAborted = h;
+
+						// If a solution worst than UB is found, updates Beta to 1 and run cut iterations.
+						if(Beta > 1 && (decendingModel.getStatus() == IloCplex.Status.Infeasible || decendingModel.getStatus() == IloCplex.Status.Unknown || 
+							decendingModel.getObjValue() < inst.UB)) {
+							h += Beta;
+							Beta = 1;
+						}
+
+						printLine(h, ascendingLastIt, decendingModel, decendingIncumbent, "DE");
 					}
 				} catch(IloException e) {
 					e.printStackTrace();
@@ -220,10 +241,14 @@ public class ParallelIterative extends Approach {
 							// Update maximum of aisles.
 							MAX_AISLES = Math.min(MAX_AISLES, (int) Math.floor(upperBoundItems / ascendingIncumbent));
 							if(MAX_AISLES < decendingLastIt) {
+								Beta = 1;
 								decendingAborter.abort();
 							}
 						}
 						
+						if(ascendingModel.getStatus() == IloCplex.Status.Infeasible || ascendingModel.getStatus() == IloCplex.Status.Optimal)
+							ascendingLastNotAborted = h;
+
 						printLine(ascendingLastIt, Math.min(MAX_AISLES, decendingLastIt), ascendingModel, ascendingIncumbent, "AC");
 					}
 				} catch(IloException e) {
