@@ -6,18 +6,20 @@ import java.util.Random;
 
 public class Individual implements Comparable<Individual> {
 
-	int _Id;
-	BitSet _Cromossome;
-	double _Fitness;
+	private int _Id;
+	private BitSet _Cromossome;
+	private double _Fitness;
+	private boolean _Parthenogenesis;
 	
 	// Temporary
 	private static final long SEED = 1L;
     private static final Random RANDOM = new Random(SEED);
 	
-	public Individual(int id, BitSet cromossome) {
+	public Individual(int id, BitSet cromossome, boolean parthenogenesis) {
 		_Id = id;
 		_Cromossome = (BitSet) cromossome.clone();
 		_Fitness = calcFitness();
+		_Parthenogenesis = parthenogenesis;
 	}
 	
 	private double calcFitness() {
@@ -28,10 +30,26 @@ public class Individual implements Comparable<Individual> {
 		return _Id;
 	}
 	
+	public BitSet getCromossome() {
+		return (BitSet) _Cromossome.clone();
+	}
+	
+	public double getFitness() {
+		return _Fitness;
+	}
+	
+	public boolean getPathenogenesis() {
+		return _Parthenogenesis;
+	}
+	
+	public void print() {
+		System.out.println("(" +_Id + "): " + _Cromossome);
+	}
+	
 	@Override
 	public int compareTo(Individual other) {
-	    int result = Double.compare(this._Fitness, other._Fitness);
-	    return result != 0 ? result : Integer.compare(this._Id, other._Id);
+	    int result = Double.compare(this._Fitness, other.getFitness());
+	    return result != 0 ? result : Integer.compare(this._Id, other.getId());
 	}
 	
 	@Override
@@ -39,7 +57,7 @@ public class Individual implements Comparable<Individual> {
         if (this == o) return true;
         if (!(o instanceof Individual)) return false;
         Individual that = (Individual) o;
-        return _Id == that._Id;
+        return _Id == that.getFitness();
     }
 
     @Override
