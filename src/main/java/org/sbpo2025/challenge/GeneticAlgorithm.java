@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -13,10 +14,13 @@ import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.time.StopWatch;
 
+import ilog.concert.IloException;
+import ilog.cplex.IloCplex;
+
 public class GeneticAlgorithm extends Approach {
 	
 	// Parameters
-	int _PopSize = 1000;
+	int _PopSize = 100;
 	int _NumGenerations = 1;
 	double _MutationRate = 0.2;
 	double _RankPression = 1.5; // (1, 2]
@@ -25,11 +29,14 @@ public class GeneticAlgorithm extends Approach {
 	// Random numbers settings
 	private static final long SEED = 1L;
     private static final Random RANDOM = new Random(SEED);
+    
+    // Model
+    HeuristicModel _Model;
 	
 	int _MinAisles, _MaxAisles;
 	
 	Set<Individual> _Population;
-	List<Individual> _Parents, _Offspring,  _Mutated;
+	List<Individual> _Parents, _Offspring,  _Mutated, _Adapted;
 	int _IndIdControl = 0;
 	
 	public GeneticAlgorithm(Instance inst, StopWatch stopWatch, long time_limit, int minAisles, int maxAisles) {
@@ -37,6 +44,9 @@ public class GeneticAlgorithm extends Approach {
 		_MinAisles = minAisles;
 		_MaxAisles = maxAisles;
 		_Population = new TreeSet<>();
+		
+		//_Model = new HeuristicModel(inst, Runtime.getRuntime().availableProcessors());
+		//_Model.build();
 	}
 	
 	public void optimize() {
@@ -65,8 +75,22 @@ public class GeneticAlgorithm extends Approach {
 			for (int i = 0; i < totalY; i++) cromossome.set(shuffledAisles.get(i));
 			
 			
-			Individual ind_ = new Individual(++_IndIdControl, cromossome, false);
-			_Population.add(ind_);
+			Individual newInd = new Individual(++_IndIdControl, cromossome, false);
+			/*try {				
+				_Model.setAisles(cromossome);
+				_Model.solve();
+				
+				if (_Model.getStatus() == IloCplex.Status.Feasible || _Model.getStatus() == IloCplex.Status.Optimal) {
+					double val = _Model.getObjValue();
+					System.out.println("ind = " + ind + " vals = " + val + ", " + val / cromossome.cardinality());
+					newInd.setFitness(_Model.getObjValue());
+				}
+				
+			} catch(IloException e) {
+				System.out.println("Error on setAisles with cromossome = " + cromossome);
+				e.printStackTrace();
+			}*/
+			_Population.add(newInd);
 		}
 		
 	}
@@ -173,9 +197,40 @@ public class GeneticAlgorithm extends Approach {
 		}
 	}
 	
-	private void adaptation() {}
+	private void adaptation() {
+		_Adapted = new ArrayList<Individual>();
+	}
 	
-	private void selection() {}
+	private void selection() {
+		List<Individual> newInds = new ArrayList<Individual>(_Offspring.size() + _Mutated.size() + _Adapted.size());
+		newInds.addAll(_Offspring);
+		newInds.addAll(_Mutated);
+		newInds.addAll(_Adapted);
+		
+		_Population.addAll(newInds);
+		
+		List<Individual> listPop = new ArrayList<Individual>(_Population);
+				
+		int eliteSlots = (int) Math.ceil(_EliteRate * _PopSize);
+		
+		Set<Individual> tempSet = new TreeSet<Individual>();
+		for (int i = listPop.size() - 1; i >= listPop.size() - eliteSlots; i--) 
+			tempSet.add(listPop.get(i));
+		
+		List<Individual> luckPop = new ArrayList<>(listPop.subList(0, listPop.size() - eliteSlots));
+		Collections.shuffle(luckPop, RANDOM);
+		
+		int i = eliteSlots;
+		for (Individual ind : luckPop) {
+			if (i == _PopSize) break;
+			tempSet.add(ind);
+			i++;
+		}
+		
+		_Population = tempSet;
+		System.out.println(_Population.size());
+		
+	}
 	
 	// ===== Auxiliary methods =====
 	
