@@ -83,6 +83,12 @@ public class HeuristicModel extends BasicModel {
         	for (int o : inst.itemsPerOrders.get(i).keySet())
         		if(p[o] != null) model.addLe(p[o], sumAisles);
         }
+        
+        // Disable dominated aisles.
+		for(int a = 0; a < inst.aisles.size(); a++) {
+			y[a].setLB(0);
+			y[a].setUB(0);
+		}
 	}
 	
 	public void setAisles(BitSet aisles) throws IloException {		

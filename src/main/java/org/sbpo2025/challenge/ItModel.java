@@ -86,8 +86,11 @@ public class ItModel extends BasicModel {
         		if(p[o] != null) model.addLe(p[o], sumAisles);
         }
         
-		for(int a = 0; a < inst.aisles.size(); a++)
-			if(inst.dominated.get(a)) disableAisle(a);
+        // Disable dominated aisles.
+		for(int a = 0; a < inst.aisles.size(); a++) {
+			y[a].setLB(0);
+			y[a].setUB(0);
+		}
 	}
         
 	public void setSumY(int NUM_AISLES) throws IloException {

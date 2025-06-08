@@ -12,7 +12,7 @@ import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
 
 
-public class NgbrModel extends BasicModel {
+public class SwapModel extends BasicModel {
 
 	// CPLEX configuration
 	int numThreads;
@@ -24,11 +24,10 @@ public class NgbrModel extends BasicModel {
 	double currLB;
 	double currUB;
 	
-	// Constraint sumY.
-	IloLinearNumExpr sumY;
-	IloConstraint sumYConstr = null;
+	IloConstraint swapConstr1 = null;
+	IloConstraint swapConstr2 = null;
 	
-	public NgbrModel(Instance inst, int threads) {
+	public SwapModel(Instance inst, int threads) {
 		super(inst);
 		
 		numThreads = threads;
@@ -59,7 +58,7 @@ public class NgbrModel extends BasicModel {
 	@Override
 	protected void buildConstrsSpecific() throws IloException {
         // ( 2 ) SUM y_a = NUM_AISLES
-        sumY = model.linearNumExpr();
+		IloLinearNumExpr sumY = model.linearNumExpr();
         for(int a = 0; a < y.length; a++) 
         	sumY.addTerm(1, y[a]);
         
@@ -96,61 +95,22 @@ public class NgbrModel extends BasicModel {
 		}
 	}
 	
-	public void setSumY(int NUM_AISLES) throws IloException {
-		if(sumYConstr != null) model.delete(sumYConstr);
-		sumYConstr = model.addEq(sumY, NUM_AISLES);
-	}
-	
-	public void setAisles(BitSet aisles) throws IloException {		
-		for(int a = 0; a < inst.aisles.size(); a++) {
-			if(inst.dominated.get(a)) continue; 
-			if(aisles.get(a)) {
-				y[a].setLB(1);
-				y[a].setUB(1);
-			} else {
-				y[a].setLB(0);
-				y[a].setUB(0);
-			}
-		}
-	}
-	
-	public void enableAisles(BitSet aisles) throws IloException {		
-		for(int a = 0; a < inst.aisles.size(); a++) {
-			if(inst.dominated.get(a)) continue; 
-			if(aisles.get(a)) {
-				y[a].setLB(1);
-				y[a].setUB(1);
-			} else {
-				y[a].setLB(0);
-				y[a].setUB(1);
-			}
-		}
-	}
-	
-	public void enableAislesExcept(BitSet aisles, int aisle) throws IloException {		
-		for(int a = 0; a < inst.aisles.size(); a++) {
-			if(inst.dominated.get(a)) continue; 
-			if(aisles.get(a) && a != aisle) {
-				y[a].setLB(1);
-				y[a].setUB(1);
-			} else {
-				y[a].setLB(0);
-				y[a].setUB(1);
-			}
-		}
-	}
-	
-	public void disableAisles(BitSet aisles) throws IloException {		
-		for(int a = 0; a < inst.aisles.size(); a++) {
-			if(inst.dominated.get(a)) continue; 
-			if(aisles.get(a)) {
-				y[a].setLB(0);
-				y[a].setUB(1);
-			} else {
-				y[a].setLB(0);
-				y[a].setUB(0);
-			}
-		}
+	public void setAisles(BitSet aisles) throws IloException {
+		if(swapConstr1 != null) model.delete(swapConstr1);
+		if(swapConstr2 != null) model.delete(swapConstr2);
+		
+		IloLinearNumExpr swapSumY1 = model.linearNumExpr();
+		IloLinearNumExpr swapSumY2 = model.linearNumExpr();
+		
+        for(int a = 0; a < y.length; a++) {
+        	if(aisles.get(a))
+        		swapSumY1.addTerm(1, y[a]);
+        	else
+        		swapSumY2.addTerm(1, y[a]);
+        }
+		
+        swapConstr1 = model.addEq(swapSumY1, aisles.cardinality()-1);
+        swapConstr2 = model.addEq(swapSumY2, 1);
 	}
 	
 	public BitSet getAisles() throws IloException {
