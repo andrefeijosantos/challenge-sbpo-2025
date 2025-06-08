@@ -31,9 +31,9 @@ public class ChallengeSolver {
     private Instance inst;
     
     // Time Limit
-    int HOURS   = 4, 
-        MINUTES = 0, 
-        SECONDS = 0;
+    int HOURS   = 0, 
+        MINUTES = 9, 
+        SECONDS = 50;
 
     public ChallengeSolver(Instance instance) {
         this.inst = instance;
@@ -47,12 +47,12 @@ public class ChallengeSolver {
 	        	break;
 
 	    	case GeneralParallelIterative:
-	    		ParallelIterative genParallelIterative = new ParallelIterative(this.inst, ItemsDistribution.AllMultipleItems, stopWatch, getTimeLimitInSeconds());
+	    		ParallelIterative genParallelIterative = new ParallelIterative(this.inst, stopWatch, getTimeLimitInSeconds());
 	        	solution = genParallelIterative.optimize();
 	    		break;
 	        	
 	    	case ParallelIterative:
-	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, getItemsDistribution(), stopWatch, getTimeLimitInSeconds());
+	    		ParallelIterative parallelIterative = new ParallelIterative(this.inst, stopWatch, getTimeLimitInSeconds());
 	        	solution = parallelIterative.optimize();
 	    		break;
 	    		
@@ -67,7 +67,7 @@ public class ChallengeSolver {
 	    		break;
 	    	
 	    	case ItRL:
-	    		ParallelIterative model1 = new ParallelIterative(this.inst, getItemsDistribution(), stopWatch, (int)(3.5*60*1000));
+	    		ParallelIterative model1 = new ParallelIterative(this.inst, stopWatch, (int)(3.5*60*1000));
 	    		RefLinFractional model2 = new RefLinFractional(this.inst, stopWatch, getTimeLimitInSeconds());
 	        	solution = model1.optimize();
 	    		
@@ -97,7 +97,7 @@ public class ChallengeSolver {
         return solution;
     }
     
-    protected ItemsDistribution getItemsDistribution() {
+    public ItemsDistribution getItemsDistribution() {
     	ItemsDistribution res = ItemsDistribution.AllOneItem;
     	
     	int multipleItemsCnt = 0;
@@ -111,6 +111,19 @@ public class ChallengeSolver {
     		res = ItemsDistribution.AllMultipleItems;
     	
     	return res;
+    }
+    
+    public int getAmountOfUnitOrders() {
+    	int cnt = 0;
+    	
+    	for(int o = 0; o < inst.orders.size(); o++)
+    		if(inst.orders.get(o).keySet().size() == 1) {
+    			var it = inst.orders.get(o).keySet().iterator().next();
+    			if(inst.orders.get(o).get(it) == 1)
+    				cnt++;
+    		}
+    	
+    	return cnt;
     }
     
     protected int getTimeLimitInSeconds() {

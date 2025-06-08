@@ -7,6 +7,9 @@ import org.apache.commons.lang3.time.StopWatch;
 
 public class Challenge {
 	
+	final static int SMALL_ENOUGH = 1000,
+		             HUGE_NUMBER_OF_BOOLS = 2400;
+	
     public static void main(String[] args) {
         // Start the stopwatch to track the running time
         StopWatch stopWatch = StopWatch.createStarted();
@@ -23,7 +26,31 @@ public class Challenge {
         
         // Execute solver for instance read.
         var solver = new ChallengeSolver(instance);
-        ChallengeSolution solution = solver.solve(Method.ParallelIterative, stopWatch);
+        ChallengeSolution solution = null;
+        
+        switch(solver.getItemsDistribution()) {
+        	case AllOneItem:
+        		if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= HUGE_NUMBER_OF_BOOLS)
+        			solution = solver.solve(Method.TabuSearch, stopWatch);
+        		else
+        			solution = solver.solve(Method.ParallelIterative, stopWatch);
+        		break;
+        		
+        	case MixedItemsQuantities:
+        		if(instance.orders.size() <= SMALL_ENOUGH)
+        			solution = solver.solve(Method.ParallelIterative, stopWatch);
+        		else
+        			solution = solver.solve(Method.TabuSearch, stopWatch);
+        		break;
+        		
+        	case AllMultipleItems:
+        		if(instance.orders.size() <= SMALL_ENOUGH)
+        			solution = solver.solve(Method.ParallelIterative, stopWatch);
+        		else
+        			solution = solver.solve(Method.TabuSearch, stopWatch);
+        		break;
+        }
+        
         
         instance.writeOutput(solution, args[1]);
     }

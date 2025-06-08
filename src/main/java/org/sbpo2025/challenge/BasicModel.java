@@ -118,9 +118,6 @@ public class BasicModel {
 		
 		lbConstr = model.addLe(inst.LB,  objective);
 		ubConstr = model.addLe(objective, inst.UB);
-		
-		//for(Pair<Integer, Integer> ords : inst.mutexOrders)
-			//model.addLe(p[ords.getLeft()], model.sum(1, model.prod(-1, p[ords.getRight()])));
 	}
 	
 	protected void buildConstrsSpecific() throws IloException {

@@ -31,7 +31,7 @@ public class Instance {
 	BitSet wontBuild, wontUse;
 	ArrayList<Integer> Q, D;
 	Set<Pair<Integer, Integer>> mutexOrders;
-	BitSet easy;
+	BitSet easy, dominated;
     
     public Instance(String file) {
         readInput(file);
@@ -276,6 +276,36 @@ public class Instance {
 						mutexOrders.add(Pair.of(o1, o2));
 			}
 		}
+		
+		dominated = new BitSet(aisles.size());
+		dominated.clear();
+		
+		for(int a = 0; a < aisles.size(); a++) {
+			
+			Set<Integer> cover = new HashSet<Integer>();
+			for(int i : aisles.get(a).keySet())
+				if(dominates(a, i))
+					cover.add(i);
+			
+			for(int b = 0; b < aisles.size(); b++) {
+				if(a == b) continue;
+				boolean T = true;
+				
+				for(int ib : aisles.get(b).keySet()) {
+					if(!cover.contains(ib)) {
+						T = false;
+						break;
+					}
+				}
+				
+				if(T) dominated.set(b);
+			}
+			
+		} 
+    }
+    
+    private boolean dominates(int a, int i) {
+    	return aisles.get(a).get(i) >= D.get(i);
     }
     
     public void loose() {

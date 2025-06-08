@@ -1,5 +1,6 @@
 package org.sbpo2025.challenge;
 
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,7 +12,7 @@ import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
 
 
-public class ItModel extends BasicModel {
+public class NgbrModel extends BasicModel {
 
 	// CPLEX configuration
 	int numThreads;
@@ -19,14 +20,15 @@ public class ItModel extends BasicModel {
 	// Model variables.
 	IloNumVar[] y;
 	
+	// Model bounds.
+	double currLB;
+	double currUB;
+	
 	// Constraint sumY.
 	IloLinearNumExpr sumY;
 	IloConstraint sumYConstr = null;
 	
-	double currLB;
-	double currUB;
-	
-	public ItModel(Instance inst, int threads) {
+	public NgbrModel(Instance inst, int threads) {
 		super(inst);
 		
 		numThreads = threads;
@@ -61,6 +63,7 @@ public class ItModel extends BasicModel {
         for(int a = 0; a < y.length; a++) 
         	sumY.addTerm(1, y[a]);
         
+               
         for (int i = 0; i < inst.n; i++) {
         	if(inst.wontUse.get(i) || inst.easy.get(i)) continue;
         	
@@ -85,14 +88,35 @@ public class ItModel extends BasicModel {
         	for (int o : inst.itemsPerOrders.get(i).keySet())
         		if(p[o] != null) model.addLe(p[o], sumAisles);
         }
-        
-		for(int a = 0; a < inst.aisles.size(); a++)
-			if(inst.dominated.get(a)) disableAisle(a);
 	}
-        
+	
 	public void setSumY(int NUM_AISLES) throws IloException {
 		if(sumYConstr != null) model.delete(sumYConstr);
 		sumYConstr = model.addEq(sumY, NUM_AISLES);
+	}
+	
+	public void setAisles(BitSet aisles) throws IloException {		
+		for(int a = 0; a < inst.aisles.size(); a++) {
+			if(aisles.get(a)) {
+				y[a].setLB(1);
+				y[a].setUB(1);
+			} else {
+				y[a].setLB(0);
+				y[a].setUB(0);
+			}
+		}
+	}
+	
+	public void enableAisles(BitSet aisles) throws IloException {		
+		for(int a = 0; a < inst.aisles.size(); a++) {
+			if(aisles.get(a)) {
+				y[a].setLB(1);
+				y[a].setUB(1);
+			} else {
+				y[a].setLB(0);
+				y[a].setUB(1);
+			}
+		}
 	}
 	
 	public void setLB(int lb) throws IloException {
@@ -113,16 +137,6 @@ public class ItModel extends BasicModel {
 	
 	public int getUB() throws IloException {
 		return (int) currUB;
-	}
-	
-	public void forceAisle(int a) throws IloException {
-		y[a].setLB(1);
-		y[a].setUB(1);
-	}
-	
-	public void disableAisle(int a) throws IloException {
-		y[a].setLB(0);
-		y[a].setUB(0);
 	}
 	
 	@Override
