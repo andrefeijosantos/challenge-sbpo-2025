@@ -36,7 +36,7 @@ public class TSHeuristic extends Approach {
 		   mv2Value;
 	ChallengeSolution mv1Solution,
 					  mv2Solution;
-	HeuristicModel mv1Model, mv2Model;
+	NgbrModel mv1Model, mv2Model;
 	
 	
 	public TSHeuristic(Instance inst, StopWatch stopWatch, long time_limit) {
@@ -47,10 +47,10 @@ public class TSHeuristic extends Approach {
 		
 		initialSolution = new BSearch(inst, stopWatch, (int)(2*60*1000), 10);
 
-		mv1Model = new HeuristicModel(inst, Runtime.getRuntime().availableProcessors());
+		mv1Model = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
 		mv1Model.build();
 		
-		mv2Model = new HeuristicModel(inst, Runtime.getRuntime().availableProcessors());
+		mv2Model = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
 		mv2Model.build();
 		
 		/*for(int a = 0; a < inst.aisles.size(); a++) {
@@ -96,6 +96,8 @@ public class TSHeuristic extends Approach {
 						break;
 					}
 				}
+				
+				maxAisles = (int) Math.floor(inst.UB/objVal);
 			}
 
 			
@@ -141,36 +143,64 @@ public class TSHeuristic extends Approach {
 			@Override
 			public void run() {	
 				try {
+					if(aisles.cardinality() <= minAisles)
+						return;
+					
 					mv1Solution = null;
 					mv1Value = objVal;
+					mv1Model.setLB(Math.max(inst.LB, (int) Math.floor(objVal * (aisles.cardinality()-1) + 1)));
 					
-					if(aisles.cardinality() > minAisles) {
-						BitSet copy = (BitSet) aisles.clone();
+					/*mv1Model.disableAisles(aisles);
+					mv1Model.setSumY(aisles.cardinality()-1);
+					
+					mv1Model.setTimeLimit(getRemainingTime(stopWatch));
+					mv1Model.solve();
+					
+					if(mv1Model.getStatus() != IloCplex.Status.Infeasible && mv1Model.getStatus() != IloCplex.Status.Unknown &&
+							mv1Model.getObjValue()/(aisles.cardinality()-1) > mv1Value) {
 						
-						for(int a = 0; a < inst.aisles.size(); a++) {
-							if(!copy.get(a)) continue;
-							
-							copy.clear(a);
-							
-							mv1Model.setAisles(copy);
-							
-							mv1Model.setTimeLimit(getRemainingTime(stopWatch));
-							mv1Model.solve();
-							
-							if(mv1Model.getStatus() != IloCplex.Status.Infeasible && mv1Model.getStatus() != IloCplex.Status.Unknown &&
-									mv1Model.getObjValue()/copy.cardinality() > mv1Value) {
-								mv1Value = mv1Model.getObjValue()/copy.cardinality();
-								mv1 = new Move(mv1Value, 1, a, a);
-								mv1Solution = mv1Model.saveSolution();
-							}
-							
-							copy.set(a);
-							
-							// Time out.
-							if(mv1Model.getStatus() != IloCplex.Status.Infeasible && mv1Model.getStatus() != IloCplex.Status.Optimal) {
-								timeOutMv1 = true;
+						BitSet sol = mv1Model.getAisles();
+						int remAisle = 0;
+						for(int a = 0; a < inst.aisles.size(); a++) 
+							if(aisles.get(a) && !sol.get(a)) {
+								remAisle = a;
 								break;
 							}
+						
+						mv1Value = mv1Model.getObjValue()/(aisles.cardinality()-1);
+						mv1 = new Move(mv1Value, 1, remAisle, remAisle);
+						mv1Solution = mv1Model.saveSolution();
+					}
+					
+					// Time out.
+					if(mv1Model.getStatus() != IloCplex.Status.Infeasible && mv1Model.getStatus() != IloCplex.Status.Optimal)
+						timeOutMv1 = true;*/
+					
+					BitSet copy = (BitSet) aisles.clone();
+					
+					for(int a = 0; a < inst.aisles.size(); a++) {
+						if(!copy.get(a)) continue;
+						
+						copy.clear(a);
+						
+						mv1Model.setAisles(copy);
+						
+						mv1Model.setTimeLimit(getRemainingTime(stopWatch));
+						mv1Model.solve();
+						
+						if(mv1Model.getStatus() != IloCplex.Status.Infeasible && mv1Model.getStatus() != IloCplex.Status.Unknown &&
+								mv1Model.getObjValue()/copy.cardinality() > mv1Value) {
+							mv1Value = mv1Model.getObjValue()/copy.cardinality();
+							mv1 = new Move(mv1Value, 1, a, a);
+							mv1Solution = mv1Model.saveSolution();
+						}
+						
+						copy.set(a);
+						
+						// Time out.
+						if(mv1Model.getStatus() != IloCplex.Status.Infeasible && mv1Model.getStatus() != IloCplex.Status.Optimal) {
+							timeOutMv1 = true;
+							break;
 						}
 					}
 				} catch(IloException e) {
@@ -186,36 +216,65 @@ public class TSHeuristic extends Approach {
 			@Override
 			public void run() {	
 				try {
+					if(aisles.cardinality() >= maxAisles)
+						return;
+					
 					mv2Solution = null;
 					mv2Value = objVal;
+					mv2Model.setLB(Math.max(inst.LB, (int) Math.floor(objVal * (aisles.cardinality()+1) + 1)));	
 					
-					if(aisles.cardinality() > minAisles) {
-						BitSet copy = (BitSet) aisles.clone();
+					/*mv2Model.enableAisles(aisles);
+					mv2Model.setSumY(aisles.cardinality()+1);
+					
+					mv2Model.setTimeLimit(getRemainingTime(stopWatch));
+					mv2Model.solve();
+					
+					if(mv2Model.getStatus() != IloCplex.Status.Infeasible && mv2Model.getStatus() != IloCplex.Status.Unknown &&
+							mv2Model.getObjValue()/(aisles.cardinality()+1) > mv2Value) {
 						
-						for(int a = 0; a < inst.aisles.size(); a++) {
-							if(!copy.get(a)) continue;
-							
-							copy.clear(a);
-							
-							mv2Model.setAisles(copy);
-							
-							mv2Model.setTimeLimit(getRemainingTime(stopWatch));
-							mv2Model.solve();
-							
-							if(mv2Model.getStatus() != IloCplex.Status.Infeasible && mv2Model.getStatus() != IloCplex.Status.Unknown &&
-									mv2Model.getObjValue()/copy.cardinality() > mv2Value) {
-								mv2Value = mv2Model.getObjValue()/copy.cardinality();
-								mv2 = new Move(mv2Value, 1, a, a);
-								mv2Solution = mv2Model.saveSolution();
-							}
-							
-							copy.set(a);
-							
-							// Time out.
-							if(mv2Model.getStatus() != IloCplex.Status.Infeasible && mv2Model.getStatus() != IloCplex.Status.Optimal) {
-								timeOutMv2 = true;
+						BitSet sol = mv2Model.getAisles();
+						int addAisle = 0;
+						for(int a = 0; a < inst.aisles.size(); a++) 
+							if(!aisles.get(a) && sol.get(a)) {
+								addAisle = a;
 								break;
 							}
+						
+						mv2Value = mv2Model.getObjValue()/(aisles.cardinality()+1);
+						mv2 = new Move(mv2Value, 1, addAisle, addAisle);
+						mv2Solution = mv2Model.saveSolution();
+					}
+					
+					// Time out.
+					if(mv2Model.getStatus() != IloCplex.Status.Infeasible && mv2Model.getStatus() != IloCplex.Status.Optimal)
+						timeOutMv2 = true;*/
+
+					
+					BitSet copy = (BitSet) aisles.clone();
+					
+					for(int a = 0; a < inst.aisles.size(); a++) {
+						if(!copy.get(a)) continue;
+						
+						copy.clear(a);
+						
+						mv2Model.setAisles(copy);
+						
+						mv2Model.setTimeLimit(getRemainingTime(stopWatch));
+						mv2Model.solve();
+						
+						if(mv2Model.getStatus() != IloCplex.Status.Infeasible && mv2Model.getStatus() != IloCplex.Status.Unknown &&
+								mv2Model.getObjValue()/copy.cardinality() > mv2Value) {
+							mv2Value = mv2Model.getObjValue()/copy.cardinality();
+							mv2 = new Move(mv2Value, 1, a, a);
+							mv2Solution = mv2Model.saveSolution();
+						}
+						
+						copy.set(a);
+						
+						// Time out.
+						if(mv2Model.getStatus() != IloCplex.Status.Infeasible && mv2Model.getStatus() != IloCplex.Status.Optimal) {
+							timeOutMv2 = true;
+							break;
 						}
 					}
 				} catch(IloException e) {

@@ -89,10 +89,11 @@ public class SwapModel extends BasicModel {
         }
         
         // Disable dominated aisles.
-		for(int a = 0; a < inst.aisles.size(); a++) {
-			y[a].setLB(0);
-			y[a].setUB(0);
-		}
+		for(int a = 0; a < inst.aisles.size(); a++)
+			if(inst.dominated.get(a)) {
+				y[a].setLB(0);
+				y[a].setUB(0);				
+			}
 	}
 	
 	public void setAisles(BitSet aisles) throws IloException {
