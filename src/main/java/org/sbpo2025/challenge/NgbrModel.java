@@ -105,6 +105,10 @@ public class NgbrModel extends BasicModel {
 		sumYConstr = model.addEq(sumY, NUM_AISLES);
 	}
 	
+	public void rmvSumYConstr() throws IloException {
+		if(sumYConstr != null) model.delete(sumYConstr);
+	}
+	
 	public void setAisles(BitSet aisles) throws IloException {		
 		for(int a = 0; a < inst.aisles.size(); a++) {
 			if(inst.dominated.get(a)) continue; 
@@ -155,6 +159,18 @@ public class NgbrModel extends BasicModel {
 				y[a].setUB(0);
 			}
 		}
+	}
+	
+	public void setAisle(int a) throws IloException {		
+		if(inst.dominated.get(a)) return; 
+		y[a].setLB(1);
+		y[a].setUB(1);
+	}
+	
+	public void unsetAisle(int a) throws IloException {		
+		if(inst.dominated.get(a)) return; 
+		y[a].setLB(0);
+		y[a].setUB(0);
 	}
 	
 	public BitSet getAisles() throws IloException {
