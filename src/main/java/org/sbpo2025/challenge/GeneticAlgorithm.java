@@ -16,98 +16,135 @@ import org.apache.commons.lang3.time.StopWatch;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
+import ilog.cplex.IloCplex.Status;
 
 public class GeneticAlgorithm extends Approach {
 	
-	// Parameters
-	int _PopSize = 100;
-	int _NumGenerations = 1;
-	double _MutationRate = 0.2;
-	double _RankPression = 1.5; // (1, 2]
-	double _EliteRate = 0.5;
+	// GA Parameters
+	int _PopSize           = 6000; // even number
+	int _NumGenerations    =  100;
+	double _MutationRate   =  0.3;
+	double _AdaptationRate =  0.3;
+	double _RankPression   =  1.5; // (1, 2]
+	double _EliteRate      =  0.5;
+	
+	// Population Management
+	List<Individual> _Population, _Parents, _Offspring, _Adapted, _Mutated;
+	int _IndIdControl = 0;
+	
+	// Individual constraints
+	int _MinAisles, _MaxAisles;
+	List<Integer> _AllowedAisles;
+	// List<Integer> _AllowedYSums;
+	
+	// Models
+    HeuristicModel _Model;
+    NgbrModel _RemAisleModel, _AddAisleModel;
+    Move _RemMove, _AddMove;
 	
 	// Random numbers settings
 	private static final long SEED = 1L;
     private static final Random RANDOM = new Random(SEED);
-    
-    // Model
-    HeuristicModel _Model;
-	
-	int _MinAisles, _MaxAisles;
-	
-	Set<Individual> _Population;
-	List<Individual> _Parents, _Offspring,  _Mutated, _Adapted;
-	int _IndIdControl = 0;
 	
 	public GeneticAlgorithm(Instance inst, StopWatch stopWatch, long time_limit, int minAisles, int maxAisles) {
 		super(inst, stopWatch, time_limit);
-		_MinAisles = minAisles;
-		_MaxAisles = maxAisles;
-		_Population = new TreeSet<>();
 		
-		//_Model = new HeuristicModel(inst, Runtime.getRuntime().availableProcessors());
-		//_Model.build();
+		_AllowedAisles = new ArrayList<Integer>(inst.aisles.size());
+		for (int a = 0; a < inst.aisles.size(); a++) {
+			if (!inst.dominated.get(a)) _AllowedAisles.add(a);
+		}
+		
+		_MinAisles = minAisles;
+		_MaxAisles = Math.min(_AllowedAisles.size(), maxAisles);
+		
+		_Population = new ArrayList<Individual>();
+		
+		_Model = new HeuristicModel(inst, Runtime.getRuntime().availableProcessors());
+		_Model.build();
+		
+		_RemAisleModel = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
+		_RemAisleModel.build();
+		
+		_AddAisleModel = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
+		_AddAisleModel.build();
+		
 	}
 	
-	public void optimize() {
+	public void optimize() { 
 		
 		generateInitialPop();
 	
+		long begTime = System.currentTimeMillis();
+		
 		for (int gen = 1; gen <= _NumGenerations; gen++) {
+			
+			System.out.println("<--- Generation " + gen + " --->\n");
+			
 			matching();
 			recombination();
 			mutation();
 			adaptation();
 			selection();
+			
+			printPopulationStats();
+			
+			long currTime = System.currentTimeMillis();
+			double passedTime = (currTime - begTime) / 1000.0;
+			System.out.println("Passed time: " + String.format("%.2f", passedTime) + "\n");
+			
 		}
 	}
 	
 	private void generateInitialPop() {
-		
-		List<Integer> aislesList = IntStream.range(0, inst.aisles.size()).boxed().collect(Collectors.toList());
+		long begTime = System.currentTimeMillis();
+		int countZeroFit = 0;
 		
 		for (int ind = 0; ind < _PopSize; ind++) {
-			List<Integer> shuffledAisles = new ArrayList<Integer>(aislesList); 
+			List<Integer> shuffledAisles = new ArrayList<Integer>(_AllowedAisles); 
 			Collections.shuffle(shuffledAisles, RANDOM);
 			
-			int totalY = _MinAisles + RANDOM.nextInt(_MaxAisles - _MinAisles + 1);
+			int sumY = RANDOM.nextInt(_MinAisles, _MaxAisles + 1);
 			BitSet cromossome = new BitSet(inst.aisles.size());
-			for (int i = 0; i < totalY; i++) cromossome.set(shuffledAisles.get(i));
-			
+			for (int i = 0; i < sumY; i++) cromossome.set(shuffledAisles.get(i));
 			
 			Individual newInd = new Individual(++_IndIdControl, cromossome, false);
-			/*try {				
+			try {				
 				_Model.setAisles(cromossome);
+				_Model.setTimeLimit(getRemainingTime(stopWatch));
 				_Model.solve();
 				
-				if (_Model.getStatus() == IloCplex.Status.Feasible || _Model.getStatus() == IloCplex.Status.Optimal) {
-					double val = _Model.getObjValue();
-					System.out.println("ind = " + ind + " vals = " + val + ", " + val / cromossome.cardinality());
-					newInd.setFitness(_Model.getObjValue());
-				}
+				if (_Model.getStatus() != IloCplex.Status.Infeasible && _Model.getStatus() != IloCplex.Status.Unknown)
+					newInd.setFitness(_Model.getObjValue() / cromossome.cardinality());
+				else
+					countZeroFit++;
 				
 			} catch(IloException e) {
 				System.out.println("Error on setAisles with cromossome = " + cromossome);
 				e.printStackTrace();
-			}*/
+			}
 			_Population.add(newInd);
 		}
 		
+		long endTime = System.currentTimeMillis();
+		double duration = (endTime - begTime) / 1000.0;
+		System.out.println("Population Generation: " + String.format("%.2f", duration) + "s");
+		System.out.println("Invalid individuals  : " + (double) countZeroFit / _PopSize + "\n");
 	}
 	
 	private void matching() {
+		long begTime = System.currentTimeMillis();
 		
 		_Parents = new ArrayList<Individual>(_PopSize);
 		
+		Collections.sort(_Population, (a, b) -> Double.compare(a.getFitness(), b.getFitness()));		
+		
 		// Ranking selection
 		List<Double> cumProb = new ArrayList<>(_PopSize);
-		List<Individual> popList = new ArrayList<>(_PopSize);
 		double baseline = (2 - _RankPression) / _PopSize;
 		double denominator = _PopSize * (_PopSize - 1);
 		
 		int i = 0;
 		for (Individual ind : _Population) {
-			popList.add(ind);
 			double p = baseline + (2 * i * (_RankPression - 1))/denominator;
 			if (i == 0) {
 				cumProb.add(p);
@@ -121,115 +158,173 @@ public class GeneticAlgorithm extends Approach {
 		List<Integer> result = susRoulette(cumProb, _PopSize);
 		Collections.shuffle(result, RANDOM);
 		
-		for (int j = 0; j < result.size(); j++) {
-			_Parents.add(popList.get(result.get(j)));
-		}
+		for (int j = 0; j < result.size(); j++)
+			_Parents.add(_Population.get(result.get(j)));
 		
+		long endTime = System.currentTimeMillis();
+		System.out.println("Matching: " + (endTime - begTime) / 1000.0 + "s");
 	}
 	
 	private void recombination() {
+		long begTime = System.currentTimeMillis();
 		
 		_Offspring = new ArrayList<Individual>(_PopSize / 2);
 		
-		for (int i = 0; i < _Parents.size(); i += 2) {
-			
-			Individual p1 = _Parents.get(i);
-			Individual p2 = _Parents.get(i+1);
-			
-			BitSet crom1 = p1.getCromossome();
-			BitSet crom2 = p2.getCromossome();
-			
-			if (p1.getId() == p2.getId()) {
-				// Mutation will be applied
-				_Offspring.add(new Individual(++_IndIdControl, p1.getCromossome(), true));
+		try {			
+			for (int i = 0; i < _Parents.size(); i += 2) {
+				Individual p1 = _Parents.get(i);
+				Individual p2 = _Parents.get(i+1);
 				
-			} else { 
-				// Crossover
-				BitSet orPs = (BitSet) crom1.clone();
-				orPs.or(crom2);
+				BitSet crom1 = p1.getCromossome();
+				BitSet crom2 = p2.getCromossome();
 				
-				BitSet andPs = (BitSet) crom1.clone();
-				andPs.and(crom2);
-				
-				BitSet xorRes = (BitSet) orPs.clone();
-				xorRes.xor(andPs);
-				
-				int minCard = Math.min(crom1.cardinality(), crom2.cardinality());
-				int maxCard = Math.max(crom1.cardinality(), crom2.cardinality());
-				int sonCard = RANDOM.nextInt(minCard, maxCard + 1);
-				
-				int remove = xorRes.cardinality() - (sonCard - andPs.cardinality());
-				List<Integer> positions = getOnePositions(xorRes);
-				Collections.shuffle(positions, RANDOM);
-				for (int j = 0; j < remove; j++) orPs.clear(positions.get(j));
-				
-				_Offspring.add(new Individual(++_IndIdControl, orPs, false));
-				
-				if (sonCard != orPs.cardinality()) System.out.println("ERRO NA RECOMBINACAO");
+				if (p1.getId() == p2.getId()) { // Mutation will be applied
+					BitSet crom = p1.getCromossome();
+					Individual newInd = new Individual(++_IndIdControl, crom, true); 
+					_Offspring.add(newInd);
+					
+					_Model.setAisles(crom);
+					_Model.setTimeLimit(getRemainingTime(stopWatch));
+					_Model.solve();
+					
+					if (_Model.getStatus() != IloCplex.Status.Infeasible && _Model.getStatus() != IloCplex.Status.Unknown)
+						newInd.setFitness(_Model.getObjValue() / crom.cardinality());
+					
+				} else { // Crossover
+					BitSet orPs = (BitSet) crom1.clone();
+					orPs.or(crom2);
+					
+					BitSet andPs = (BitSet) crom1.clone();
+					andPs.and(crom2);
+					
+					BitSet xorRes = (BitSet) orPs.clone();
+					xorRes.xor(andPs);
+					
+					int minCard = Math.min(crom1.cardinality(), crom2.cardinality());
+					int maxCard = Math.max(crom1.cardinality(), crom2.cardinality());
+					int sonCard = RANDOM.nextInt(minCard, maxCard + 1);
+					
+					int remove = xorRes.cardinality() - (sonCard - andPs.cardinality());
+					List<Integer> positions = getOnePositions(xorRes);
+					Collections.shuffle(positions, RANDOM);
+					for (int j = 0; j < remove; j++) orPs.clear(positions.get(j));
+					
+					Individual newInd = new Individual(++_IndIdControl, orPs, false);
+					_Offspring.add(newInd);
+					
+					if (sonCard != orPs.cardinality()) System.out.println("!!! Error on recombination !!!");
+					
+					_Model.setAisles(orPs);
+					_Model.setTimeLimit(getRemainingTime(stopWatch));
+					_Model.solve();
+					
+					if (_Model.getStatus() != IloCplex.Status.Infeasible && _Model.getStatus() != IloCplex.Status.Unknown)
+						newInd.setFitness(_Model.getObjValue() / orPs.cardinality());
+				}
 			}
+		} catch(IloException e) {
+			System.out.println("CPLEX error on recombination");
+			e.printStackTrace();
 		}
 		
+		long endTime = System.currentTimeMillis();
+		double duration = (endTime - begTime) / 1000.0;
+		System.out.println("Recombination: " + String.format("%.2f", duration) + "s");
 	}
 	
 	private void mutation() {
+		long begTime = System.currentTimeMillis();
 		
-		_Mutated = new ArrayList<Individual>((int) Math.ceil((_MutationRate + 0.2) * _Offspring.size()));
-		
-		for (int i = 0; i < _Offspring.size(); i++) {
-			if (_Offspring.get(i).getPathenogenesis() || RANDOM.nextDouble() <= _MutationRate) {
-				BitSet crom = _Offspring.get(i).getCromossome();
-				mutateCromossome(crom);
-				_Mutated.add(new Individual(++_IndIdControl, crom, false));
+		_Mutated = new ArrayList<Individual>((int) Math.ceil((_MutationRate + 0.3) * _Offspring.size())); // Estimate size
+		try {
+			for (int i = 0; i < _Offspring.size(); i++) {
+				if (_Offspring.get(i).getParthenogenesis()) {
+					Individual ind = _Offspring.get(i);
+					BitSet crom = ind.getCromossome();
+					mutateCromossome(crom);
+					
+					_Model.setAisles(crom);
+					_Model.setTimeLimit(getRemainingTime(stopWatch));
+					_Model.solve();
+					
+					if (_Model.getStatus() != IloCplex.Status.Infeasible && _Model.getStatus() != IloCplex.Status.Unknown)
+						ind.setFitness(_Model.getObjValue() / crom.cardinality());
+					else
+						ind.setFitness(0.0);
+					
+					ind.setCromossome(crom);
+					
+				} else if (RANDOM.nextDouble() <= _MutationRate) {
+					BitSet crom = _Offspring.get(i).getCromossome();
+					mutateCromossome(crom);
+					Individual newInd = new Individual(++_IndIdControl, crom, false);
+					
+					_Model.setAisles(crom);
+					_Model.setTimeLimit(getRemainingTime(stopWatch));
+					_Model.solve();
+					
+					if (_Model.getStatus() != IloCplex.Status.Infeasible && _Model.getStatus() != IloCplex.Status.Unknown)
+						newInd.setFitness(_Model.getObjValue() / crom.cardinality());
+					
+					_Mutated.add(newInd);
+				}
 			}
-		}	
+		} catch (IloException e) {
+			System.out.println("CPLEX error on mutation");
+			e.printStackTrace();
+		}
+		
+		long endTime = System.currentTimeMillis();
+		double duration = (endTime - begTime) / 1000.0;
+		System.out.println("Mutation: " + String.format("%.2f", duration) + "s");
 	}
 	
-	private void mutateCromossome(BitSet cromossome) {
-		List<Integer> onePos = getOnePositions(cromossome);
-		List<Integer> zeroPos = getZeroPositions(cromossome);
+	private void mutateCromossome(BitSet crom) {
+		List<Integer> onePos = getOnePositions(crom);
+		List<Integer> zeroPos = getAllowedZeroPositions(crom);
 		
 		if (onePos.size() > 0 && zeroPos.size() > 0) {
-			int randOne = RANDOM.nextInt(0, onePos.size());
-			int randZero = RANDOM.nextInt(0, zeroPos.size());
+			int randIdx = RANDOM.nextInt(0, onePos.size());
+			crom.clear(onePos.get(randIdx));
 			
-			cromossome.clear(onePos.get(randOne));
-			cromossome.set(zeroPos.get(randZero));
+			randIdx = RANDOM.nextInt(0, zeroPos.size());
+			crom.set(zeroPos.get(randIdx));
 		}
 	}
 	
 	private void adaptation() {
+		long begTime = System.currentTimeMillis();
+		
 		_Adapted = new ArrayList<Individual>();
+		
+		long endTime = System.currentTimeMillis();
+		double duration = (endTime - begTime) / 1000.0;
+		System.out.println("Adaptation: " + String.format("%.2f", duration) + "s");
 	}
 	
 	private void selection() {
-		List<Individual> newInds = new ArrayList<Individual>(_Offspring.size() + _Mutated.size() + _Adapted.size());
-		newInds.addAll(_Offspring);
-		newInds.addAll(_Mutated);
-		newInds.addAll(_Adapted);
+		long begTime = System.currentTimeMillis();
 		
-		_Population.addAll(newInds);
+		_Population.addAll(_Offspring);
+		_Population.addAll(_Mutated);
+		_Population.addAll(_Adapted);
 		
-		List<Individual> listPop = new ArrayList<Individual>(_Population);
-				
+		Collections.sort(_Population, (a, b) -> Double.compare(a.getFitness(), b.getFitness()));
+		
 		int eliteSlots = (int) Math.ceil(_EliteRate * _PopSize);
+		List<Individual> nextGen = new ArrayList<Individual>(_Population.subList(_Population.size() - eliteSlots, _Population.size()));
 		
-		Set<Individual> tempSet = new TreeSet<Individual>();
-		for (int i = listPop.size() - 1; i >= listPop.size() - eliteSlots; i--) 
-			tempSet.add(listPop.get(i));
-		
-		List<Individual> luckPop = new ArrayList<>(listPop.subList(0, listPop.size() - eliteSlots));
+		List<Individual> luckPop = new ArrayList<Individual>(_Population.subList(0, _Population.size() - eliteSlots));
 		Collections.shuffle(luckPop, RANDOM);
 		
-		int i = eliteSlots;
-		for (Individual ind : luckPop) {
-			if (i == _PopSize) break;
-			tempSet.add(ind);
-			i++;
-		}
+		for (int i = 0; i < luckPop.size() && nextGen.size() < _PopSize; i++)
+			nextGen.add(luckPop.get(i));
 		
-		_Population = tempSet;
-		System.out.println(_Population.size());
+		_Population = nextGen;
 		
+		long endTime = System.currentTimeMillis();
+		double duration = (endTime - begTime) / 1000.0;
+		System.out.println("Selection: " + String.format("%.2f", duration) + "s");
 	}
 	
 	// ===== Auxiliary methods =====
@@ -261,14 +356,104 @@ public class GeneticAlgorithm extends Approach {
         return positions;
     }
 	
-	private List<Integer> getZeroPositions(BitSet bitset) {
+	private List<Integer> getAllowedZeroPositions(BitSet bitset) {
 	    List<Integer> positions = new ArrayList<>(inst.aisles.size());
 	    for (int i = 0; i < inst.aisles.size(); i++) {
-	        if (!bitset.get(i)) {
+	        if (!bitset.get(i) && !inst.dominated.get(i))
 	            positions.add(i);
-	        }
 	    }
 	    return positions;
 	}
+	
+	private Thread removeAisle(BitSet aisles) {
+		return new Thread() {
+			@Override
+			public void run() {
+				try {
+					_RemMove = null;
+					BitSet aislesCopy = (BitSet) aisles.clone();
+					double remAislesVal = 0.0;
+					
+					for (int a = 0; a < inst.aisles.size(); a++) {
+						if (!aislesCopy.get(a)) continue;
+						
+						aislesCopy.clear(a);
+						
+						_RemAisleModel.setAisles(aislesCopy);
+						_RemAisleModel.setTimeLimit(getRemainingTime(stopWatch));
+						_RemAisleModel.solve();
+						
+						Status status = _RemAisleModel.getStatus(); 
+						if (status != IloCplex.Status.Infeasible && status != IloCplex.Status.Unknown &&
+								(_RemAisleModel.getObjValue() / aislesCopy.cardinality()) > remAislesVal) {
+							remAislesVal = _RemAisleModel.getObjValue() / aislesCopy.cardinality();
+							_RemMove = new Move(remAislesVal, -1, a, -1);
+						}
+						
+						aislesCopy.set(a);
+					}
+				} catch (IloException e) {
+					System.out.println("Error on removeAilse");
+					e.printStackTrace();
+				}
+			}
+		};
+	}
+	
+	private Thread addAisle(BitSet aisles) {
+		return new Thread() {
+			@Override
+			public void run() {
+				try {
+					_AddMove = null;
+					BitSet aislesCopy = (BitSet) aisles.clone();
+					double addAislesVal = 0.0;
+					
+					for (int a = 0; a < inst.aisles.size(); a++) {
+						if (aislesCopy.get(a) || inst.dominated.get(a)) continue;
+						
+						aislesCopy.set(a);
+						
+						_AddAisleModel.setAisles(aislesCopy);
+						_AddAisleModel.setTimeLimit(getRemainingTime(stopWatch));
+						_AddAisleModel.solve();
+						
+						Status status = _AddAisleModel.getStatus(); 
+						if (status != IloCplex.Status.Infeasible && status != IloCplex.Status.Unknown &&
+								(_AddAisleModel.getObjValue() / aislesCopy.cardinality()) > addAislesVal) {
+							addAislesVal = _AddAisleModel.getObjValue() / aislesCopy.cardinality();
+							_AddMove = new Move(addAislesVal, -1, a, -1);
+						}
+						
+						aislesCopy.clear(a);
+					}
+				} catch (IloException e) {
+					System.out.println("Error on addAilse");
+					e.printStackTrace();
+				}
+			}
+		};
+	}
+	
+	private void printPopulationStats() {
+		double sum = 0.0;
+		double sumSquares = 0.0;
+		double best = Double.NEGATIVE_INFINITY;
 		
+		for (Individual ind : _Population) {
+			double fitness = ind.getFitness();
+			sum += fitness;
+			sumSquares += fitness * fitness;
+			if (fitness > best) best = fitness;
+		}
+		
+		double avg = sum / _PopSize;
+		double stdDev = Math.sqrt((sumSquares / _PopSize) - (avg * avg));
+		
+		System.out.println();
+		System.out.println("Best Fitness : " + String.format("%.2f", best));
+		System.out.println("Average      : " + String.format("%.2f", avg));
+		System.out.println("Std Deviation: " + String.format("%.2f", stdDev));
+		System.out.println();
+	}
 }

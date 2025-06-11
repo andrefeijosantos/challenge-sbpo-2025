@@ -11,8 +11,6 @@ public class Individual implements Comparable<Individual> {
 	private double _Fitness;
 	private boolean _Parthenogenesis;
 	
-	static HeuristicModel model;
-	
 	// Temporary
 	private static final long SEED = 1L;
     private static final Random RANDOM = new Random(SEED);
@@ -21,7 +19,7 @@ public class Individual implements Comparable<Individual> {
 		_Id = id;
 		_Cromossome = (BitSet) cromossome.clone();
 		_Parthenogenesis = parthenogenesis;
-		_Fitness = RANDOM.nextDouble(); // MUDAR
+		_Fitness = 0.0;
 	}
 	
 	public int getId() {
@@ -32,6 +30,10 @@ public class Individual implements Comparable<Individual> {
 		return (BitSet) _Cromossome.clone();
 	}
 	
+	public void setCromossome(BitSet cromossome) {
+		_Cromossome = (BitSet) cromossome.clone();
+	}
+	
 	public void setFitness(double fitness) {
 		_Fitness = fitness;
 	}
@@ -40,7 +42,7 @@ public class Individual implements Comparable<Individual> {
 		return _Fitness;
 	}
 	
-	public boolean getPathenogenesis() {
+	public boolean getParthenogenesis() {
 		return _Parthenogenesis;
 	}
 	
