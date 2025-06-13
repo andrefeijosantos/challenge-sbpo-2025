@@ -28,6 +28,8 @@ public class Challenge {
         var solver = new ChallengeSolver(instance);
         ChallengeSolution solution = null;
         
+        //solution = solver.solve(Method.GeneticAlgorithm, stopWatch);
+        
         switch(solver.getItemsDistribution()) {
         	case AllOneItem:
         		if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= HUGE_NUMBER_OF_BOOLS)

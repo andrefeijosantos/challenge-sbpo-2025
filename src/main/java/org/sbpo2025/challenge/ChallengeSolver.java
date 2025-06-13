@@ -16,7 +16,8 @@ enum Method {
 	ParamFractional,
 	RLFractional,
 	ItRL,
-	TabuSearch
+	TabuSearch,
+	GeneticAlgorithm
 }
 
 enum ItemsDistribution {
@@ -40,6 +41,8 @@ public class ChallengeSolver {
     }
 
     public ChallengeSolution solve(Method method, StopWatch stopWatch) {
+    	print_header(method);
+    	
     	switch(method) {
 	    	case Iterative:
 	        	Iterative itModel = new Iterative(this.inst, stopWatch, getTimeLimitInSeconds(), 30000);
@@ -86,6 +89,11 @@ public class ChallengeSolver {
 	    	case TabuSearch:
 	    		TSHeuristic tb = new TSHeuristic(this.inst, stopWatch, getTimeLimitInSeconds());
 	        	solution = tb.optimize();
+	    		break;
+	    		
+	    	case GeneticAlgorithm:
+	    		GeneticAlgorithm ga = new GeneticAlgorithm(this.inst, stopWatch, getTimeLimitInSeconds(), 5, 18);
+	        	ga.optimize();
 	    		break;
     	}
     	
@@ -190,5 +198,23 @@ public class ChallengeSolver {
 
         // Objective function: total units picked / number of visited aisles
         return (double) totalUnitsPicked / numVisitedAisles;
+    }
+    
+    protected void print_header(Method method) {
+    	System.out.println("SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)");
+    	
+    	switch(method) {
+	    	case TabuSearch:
+	    		System.out.println("Using heuristic approach.\n");
+	    		break;
+	    		
+	    	case GeneticAlgorithm:
+	    		System.out.println("Using heuristic approach.\n");
+	    		break;
+	    	
+	    	default:
+	    		System.out.println("Solving instance to optimality.\n");
+	    		break;
+    	}
     }
 }

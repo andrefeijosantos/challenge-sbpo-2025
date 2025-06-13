@@ -277,6 +277,10 @@ public class Instance {
 			}
 		}
 		
+		List<List<Integer>> domination = new ArrayList<List<Integer>>(aisles.size());
+		for(int a = 0; a < aisles.size(); a++)
+			domination.add(new ArrayList<Integer>());
+		
 		dominated = new BitSet(aisles.size());
 		dominated.clear();
 		
@@ -298,10 +302,21 @@ public class Instance {
 					}
 				}
 				
-				if(T) dominated.set(b);
+				if(T) {
+					domination.get(b).add(a);
+					dominated.set(b);
+				}
 			}
 			
-		} 
+		}
+		
+		for(int a = 0; a < aisles.size(); a++)
+			for(int b : domination.get(a)) {
+				if(domination.get(b).size() == 1 && domination.get(b).get(0) == a)
+					dominated.clear(b);
+			}
+		
+		domination = null;
     }
     
     private boolean dominates(int a, int i) {

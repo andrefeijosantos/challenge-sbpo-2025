@@ -82,8 +82,6 @@ public class ParallelIterative extends Approach {
 	
 	public ChallengeSolution optimize() {
 		try {	
-			logln("" + Beta);
-			
 			print_header();
 			inst.loose();
 			
@@ -135,7 +133,7 @@ public class ParallelIterative extends Approach {
 			@Override
 			public void run() {	
 				try {
-					for(int h = MAX_AISLES - inst.dominated.cardinality(); h > 0; h-=Beta) {
+					for(int h = MAX_AISLES; h > 0; h-=Beta) {
 						if(getRemainingTime(stopWatch) <= 5) {
 							logln("Time Limit reached (DE).");
 							decendingTimeOut = true;
@@ -272,7 +270,6 @@ public class ParallelIterative extends Approach {
 	
 	// === DEBUGGING AND LOGGING METHODS ===
 	private void print_header() throws IloException {
-		logln("SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)");
 		logln("Approach: Parallel Iterative Solver");
 		logln("Thread count: CPLEX using up to " + (ascendingModel.model.getParam(IloCplex.Param.Threads) + decendingModel.model.getParam(IloCplex.Param.Threads)) + " threads");
 		logln("Variable types: 1 continuous; " + (ascendingModel.y.length + ascendingModel.p.length) + 

@@ -15,7 +15,7 @@ public class TSHeuristic extends Approach {
 	int minAisles, maxAisles;
 	
 	// Tabu list.
-	int TABU_LOCK = 6;
+	int TABU_LOCK = 10;
 	int[] tabu;
 	
 	// Moves.
@@ -32,13 +32,15 @@ public class TSHeuristic extends Approach {
 					  currSolution;
 	double currObj;
 	
-	BitSet aisles;
+	BitSet aisles, bestAisles;
 	
 	boolean timeOut    = false,
 			timeOutMv1 = false,
 			timeOutMv2 = false;
 	
-	double DISTURB_FACTOR = 0.75;
+	double DISTURB_FACTOR = 0.5;
+	int    MAX_NO_IMPRV_ITS = 1000,
+		   noImptvIts = 0;
 	
 	
 	public TSHeuristic(Instance inst, StopWatch stopWatch, long time_limit) {
@@ -57,14 +59,12 @@ public class TSHeuristic extends Approach {
 		
 		tabu = new int[inst.aisles.size()];
 		for(int i = 0; i < 0; i++) tabu[i] = 0;
-		
-		logln("" + tabu);
 	}
 	
 	
 	public ChallengeSolution optimize() {
 		try {
-		
+			
 			// Finds a initial solution using parallel iterative exact method.
 			solution = initialSolution.optimize();
 			for(int a : solution.aisles())
@@ -73,18 +73,11 @@ public class TSHeuristic extends Approach {
 			maxAisles = initialSolution.decendingLastNotAborted + 1;
 			objVal = initialSolution.objVal;
 			
-			logln("Running TS for range [" + minAisles + ", " + maxAisles + "]");
-			
-			while(!timeOut) {
+			print_header();
+			while(!timeOut && noImptvIts <= MAX_NO_IMPRV_ITS) {
 				Move mv = move();
 				
-				if(mv == null) break;
-				else {
-					if(currObj > objVal) {
-						solution = currSolution;
-						objVal   = currObj;
-					}
-					
+				if(mv != null)  {					
 					logln("" + mv);
 					
 					switch(mv.mvType()) {
@@ -95,7 +88,14 @@ public class TSHeuristic extends Approach {
 							aisles.set(mv.a1());
 							break;
 					}
-				}
+					
+					if(currObj > objVal) {
+						solution = currSolution;
+						objVal   = currObj;
+						bestAisles = (BitSet) aisles.clone();
+						noImptvIts = 0;
+					} else noImptvIts++;
+				} 
 				
 				maxAisles = (int) Math.floor(inst.UB/objVal);
 				updateTabu();
@@ -107,6 +107,8 @@ public class TSHeuristic extends Approach {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		
+		logln(""+bestAisles);
 		
 		return solution;
 	}
@@ -123,24 +125,28 @@ public class TSHeuristic extends Approach {
 		mv1Thread.join();
 		mv2Thread.join();
 		
+
 		timeOut = timeOutMv1 | timeOutMv2;
 		if(mv1Solution == null && mv2Solution == null)
 			return null;
 		
-		if(mv2 == null || mv1Value > mv2Value) {
+		
+		if(mv2Solution == null || mv1Value > mv2Value) {
 			mv = mv1;
 			tabu[mv1.a1()] = TABU_LOCK;
 			
 			currSolution = mv1Solution;
 			currObj      = mv1.newObj();
 			
-		} else if(mv2 != null) {
+		} else if(mv2Solution != null) {
 			mv = mv2;
 			tabu[mv2.a1()] = TABU_LOCK;
 			
 			currSolution = mv2Solution;
 			currObj      = mv2.newObj();
 		}
+		
+		
 		
 		return mv;
 	}
@@ -151,11 +157,12 @@ public class TSHeuristic extends Approach {
 			@Override
 			public void run() {	
 				try {
+					mv1Solution = null; mv1 = null; mv1Value = 0;
+					mv1Model.setLB(Math.max(inst.LB, (int)(DISTURB_FACTOR * Math.floor(objVal * (aisles.cardinality()-1))) + 1));
+
 					if(aisles.cardinality() <= minAisles)
 						return;
 					
-					mv1Solution = null;
-					mv1Model.setLB(Math.max(inst.LB, (int)(DISTURB_FACTOR * Math.floor(objVal * (aisles.cardinality()-1))) + 1));
 					
 					if(aisles.cardinality() > 0.25*inst.aisles.size()) {
 						mv1Model.disableAisles(aisles);
@@ -229,11 +236,12 @@ public class TSHeuristic extends Approach {
 			@Override
 			public void run() {	
 				try {
+					mv2Solution = null; mv2 = null; mv2Value = 0;
+					mv2Model.setLB(Math.max(inst.LB, (int)(DISTURB_FACTOR * Math.floor(objVal * (aisles.cardinality()+1))) + 1));
+
 					if(aisles.cardinality() >= maxAisles)
 						return;
 					
-					mv2Solution = null;
-					mv2Model.setLB(Math.max(inst.LB, (int)(DISTURB_FACTOR * Math.floor(objVal * (aisles.cardinality()+1))) + 1));
 					
 					if(inst.aisles.size() - aisles.cardinality() > 0.25*inst.aisles.size()) {
 						mv2Model.enableAisles(aisles);
@@ -302,8 +310,8 @@ public class TSHeuristic extends Approach {
 	}
 
 	protected void updateTabu() {
-		for(int i = 0; i < 0; i++) 
-			tabu[i] = Math.min(tabu[i]-1, 0);
+		for(int i = 0; i < inst.aisles.size(); i++) 
+			tabu[i] = Math.max(tabu[i]-1, 0);
 	}
 	
 	public void logAisles() {
@@ -312,5 +320,13 @@ public class TSHeuristic extends Approach {
 			else log("0");
 		}
 		logln("");
+	}
+	
+	private void print_header() throws IloException {
+		logln("Heuristic step: Tabu Search");
+		logln("Improving solution for range: [" + minAisles + "," + maxAisles + "].");
+		logln("");
+		
+		logln("  It  |  h  |  H  |  found  |  Incumbent  |  No imprv. | Max. no imprv.  ");
 	}
 }

@@ -1,7 +1,11 @@
 package org.sbpo2025.challenge;
 
 
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.commons.lang3.tuple.Pair;
@@ -19,6 +23,7 @@ public class BSearch extends Approach {
 	IloCplex.Aborter decendingAborter;
 	IloCplex.Aborter ascendingAborter;
 	
+	// Optimiaztion routines.
 	Thread ascendingThread = null;
 	Thread decendingThread = null;
 	
@@ -36,28 +41,33 @@ public class BSearch extends Approach {
 	boolean decendingTimeOut = false;
 	boolean optimal;
 	
+	int MAX_AISLES;
+	int TOTAL_AISLES;
+	
 	// Threads informations.
-	int ascendingLastIt = 0;
-	int decendingLastIt = Integer.MAX_VALUE;
-	int decendingLastNotAborted;
-	int ascendingLastNotAborted;
+	int ascendingLastIt = 0;                    // <- Last iteration entered.
+	int decendingLastIt = Integer.MAX_VALUE;    // <--|
+	
+	int decendingLastNotAborted;                // <- Last iteration fully optimized.
+	int ascendingLastNotAborted;                // <--|
 	
 	// Upper and lower bounds for items.
 	int upperBoundItems;
 	int lowerBoundItems;
 	int ascendingLowerBoundItems;
 	int decendingLowerBoundItems;
+	double alfa = 1.0;
 	
-	int MAX_AISLES;
-	int TOTAL_AISLES;
-
+	// Solutions found during process.
+	public List<Pair<IloCplex.Status, BitSet>> itsols;
+	public Set<Integer> feasibles;
+	
 	// Binary Search.
-	BitSet avoid = new BitSet();
-	int NO_UB_TIMEOUT = 30;
 	Pair<Integer, Integer> decendingRange;
-	int tol;
-	
-	boolean run_bs = true;
+	BitSet avoid = new BitSet();            // Already executed iterations.
+	int NO_UB_TIMEOUT = 30,                 // If no solution was found within this time, then we assume we'll not find UB.
+		tol;                                // Tolerance for UB.
+	boolean run_bs = true;                  // 1 if the DR should run binary search; 0, otherwise.     
 	
 
 	public BSearch(Instance inst, StopWatch stopWatch, long timeLimit, int tolerance) {
@@ -71,20 +81,29 @@ public class BSearch extends Approach {
 		
 		ascendingModel.build();
 		decendingModel.build();
-		avoid.clear();
 		
 		ascendingLowerBoundItems = inst.LB;
 		decendingLowerBoundItems = inst.LB;
 		upperBoundItems = inst.UB;
+		avoid.clear();
 		
-		TOTAL_AISLES = inst.aisles.size();
-		MAX_AISLES   = inst.aisles.size() - inst.dominated.cardinality();
+		TOTAL_AISLES = inst.aisles.size() - inst.dominated.cardinality();
+		MAX_AISLES   = TOTAL_AISLES;
 		decendingRange = Pair.of(1, MAX_AISLES);
 		
 		ascendingIncumbent = inst.LB/TOTAL_AISLES;
 		decendingIncumbent = inst.LB/TOTAL_AISLES;
 
 		tol = tolerance;
+		
+		// Found solutions log.
+		itsols = new ArrayList<Pair<IloCplex.Status, BitSet>>();
+		for(int a = 0; a < inst.aisles.size(); a++) {
+			BitSet b = new BitSet(); b.clear();
+			itsols.add(Pair.of(Status.Unknown, b));
+		}
+		
+		feasibles = new HashSet<Integer>();
 	}
 
 	
@@ -125,7 +144,7 @@ public class BSearch extends Approach {
 			
 			logln("");
 			logln("Ascending Thread finished at: " + ascendingLastIt);
-			logln("Decending Thread finished at: " + decendingLastIt);
+			logln("Decending Thread finished at: " + decendingLastNotAborted);
 			logln("Solution found: " + objVal);
 			logln("Proved optimal? " + optimal + "\n");
 			
@@ -141,6 +160,8 @@ public class BSearch extends Approach {
 			@Override
 			public void run() {	
 				try {
+					
+					// ===== FIRST STEP: ITERATIVE DESCENDENT =====
 					int h = MAX_AISLES/2, lastH = MAX_AISLES;
 					
 					while(run_bs && decendingRange.getLeft() <= decendingRange.getRight()) {
@@ -150,57 +171,70 @@ public class BSearch extends Approach {
 							break;
 						}
 						
-						h = (decendingRange.getLeft() + decendingRange.getRight())/2;
+						h = decendingRange.getLeft() + (decendingRange.getRight() - decendingRange.getLeft())/2;
+						decendingLastIt = h;
+						
 						if(h == lastH) break;
 						lastH = h;
-
+						
 						// Set parameters for running the model for h aisles..
 						decendingModel.setTimeLimit(Math.min(NO_UB_TIMEOUT, getRemainingTime(stopWatch)));
 						
-						// Optimizes model for "num_aisles" aisles.
+						// Optimizes model for h aisles.
 						h = Math.min(h, MAX_AISLES);
 						decendingModel.setSumY(h);
 						
+						// Calculate a improvement LB.
 						double bestIncumbent = Math.max(ascendingIncumbent, decendingIncumbent);
-						decendingLowerBoundItems = Math.max(inst.LB, (int) Math.floor(bestIncumbent * h + 1));	
-						
+						decendingLowerBoundItems = Math.max(inst.LB, (int) (alfa * Math.floor(bestIncumbent * h + 1)));	
 						decendingModel.setLB(decendingLowerBoundItems);
 						decendingModel.setUB(upperBoundItems);
 						
 						// Optimizes for h aisles.
 						if(!ascendingOptimal && (h >= ascendingLastIt)) {
-							decendingLastIt = h;
 							decendingAborter.clear();
 							decendingModel.solve();
 						}
 						else break;
 						
-						if(decendingModel.getStatus() == Status.Optimal || decendingModel.getStatus() == Status.Infeasible )
-							avoid.set(h);
 						
-						// If a better solution was found.
-						if(decendingModel.getStatus() == IloCplex.Status.Optimal || decendingModel.getStatus() == IloCplex.Status.Feasible) {	
-							if(decendingModel.getObjValue()/h > decendingIncumbent) {
-								decendingIncumbent = decendingModel.getObjValue()/h;
-								decendingSolution = decendingModel.saveSolution();
-							}
-							
+						// If a solution was found.
+						if(decendingModel.getStatus() == IloCplex.Status.Optimal || decendingModel.getStatus() == IloCplex.Status.Feasible) {
+							// Update range.
 							if(decendingModel.getObjValue() + tol >= inst.UB)  {
-								decendingRange = Pair.of(decendingRange.getLeft(), h);
+								decendingRange = Pair.of(1, h);
 								decendingLastNotAborted = h;
 							}
 							else 
 								decendingRange = Pair.of(h, decendingRange.getRight());
+							
+							// If a better solution was found.
+							if(decendingModel.getObjValue()/h > decendingIncumbent) {
+								decendingIncumbent = decendingModel.getObjValue()/h;
+								decendingSolution = decendingModel.saveSolution();
+								decendingLastNotAborted = (int) Math.min(decendingLastNotAborted, Math.floor(inst.UB/decendingIncumbent));
+								decendingRange = Pair.of(decendingRange.getLeft(), decendingLastNotAborted);
+							}
+						} 
+						
+						// Saving solution logs.
+						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) {
+							itsols.add(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
+							feasibles.add(h);
 						} else 
-							decendingRange = Pair.of(h, decendingRange.getRight());
+							itsols.set(h, Pair.of(decendingModel.getStatus(), itsols.get(h).getRight()));
+						
+						// If a iteration was fully optimized.
+						if(ascendingModel.getStatus() == IloCplex.Status.Infeasible || ascendingModel.getStatus() == IloCplex.Status.Optimal)
+							avoid.set(h);
 
 						printLine(h, ascendingLastIt, decendingModel, decendingIncumbent, "DE");
 					}
-				
 					System.out.println("BSearch finished");
-					if(MAX_AISLES < TOTAL_AISLES)
-						h = MAX_AISLES;
-					else h = decendingLastNotAborted - 1;
+				
+					
+					// ===== SECOND STEP: ITERATIVE DESCENDENT =====
+					h = decendingLastNotAborted;
 					
 					for(; h > 0; h-=1) {
 						if(getRemainingTime(stopWatch) <= 5) {
@@ -209,6 +243,8 @@ public class BSearch extends Approach {
 							break;
 						}
 	
+						decendingLastIt = h;
+						
 						// Set parameters for running the model for h aisles..
 						decendingModel.setTimeLimit(getRemainingTime(stopWatch));
 						
@@ -220,52 +256,57 @@ public class BSearch extends Approach {
 						}
 						decendingModel.setSumY(h);
 						
+						// Update lower bound.
 						double bestIncumbent = Math.max(ascendingIncumbent, decendingIncumbent);
-						decendingLowerBoundItems = Math.max(inst.LB, (int) Math.floor(bestIncumbent * h + 1));	
-						
+						decendingLowerBoundItems = Math.max(inst.LB, (int) (alfa * Math.floor(bestIncumbent * h + 1)));		
 						decendingModel.setLB(decendingLowerBoundItems);
 						decendingModel.setUB(upperBoundItems);
 						
 						// Optimizes for h aisles.
 						if(!ascendingOptimal && (h >= ascendingLastIt)) {
-							decendingLastIt = h;
 							decendingAborter.clear();
 							decendingModel.solve();
 						}
 						else break;
 						
-						// If a better solution was found.
-						if(decendingModel.getStatus() == IloCplex.Status.Optimal) {
+						// If a better was found.
+						if(decendingModel.getStatus() == IloCplex.Status.Optimal || decendingModel.getStatus() == IloCplex.Status.Feasible) {
 							if(decendingModel.getObjValue()/h > decendingIncumbent) {		
 								decendingIncumbent = decendingModel.getObjValue()/h;
 								decendingSolution = decendingModel.saveSolution();
 							}
 							
-							upperBoundItems = (int) decendingModel.getObjValue();
+							if(decendingModel.getStatus() == IloCplex.Status.Optimal)
+								upperBoundItems = (int) decendingModel.getObjValue();
 	
-						} else if(decendingModel.getStatus() == IloCplex.Status.Feasible && decendingModel.getObjValue()/h > decendingIncumbent)  {								
-								decendingIncumbent = decendingModel.getObjValue()/h;
-								decendingSolution = decendingModel.saveSolution();
 						} else if(decendingModel.getStatus() == IloCplex.Status.Infeasible)
 							upperBoundItems = ((int) decendingModel.getLB()) - 1;
 						
-						// Saves the last not aborted iteration (in case other method will be ran after it).
-						if(decendingModel.getStatus() == IloCplex.Status.Infeasible || decendingModel.getStatus() == IloCplex.Status.Optimal)
-							decendingLastNotAborted = h;
+						// Saving solution logs.
+						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) {
+							itsols.add(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
+							feasibles.add(h);
+						} else 
+							itsols.set(h, Pair.of(decendingModel.getStatus(), itsols.get(h).getRight()));
+						
+						// If a iteration was fully optimized.
+						if(ascendingModel.getStatus() == IloCplex.Status.Infeasible || ascendingModel.getStatus() == IloCplex.Status.Optimal)
+							ascendingLastNotAborted = h;
 	
 						printLine(h, ascendingLastIt, decendingModel, decendingIncumbent, "DE");
 					}
 					
 					decendingOptimal = !decendingTimeOut;
 					ascendingAborter.abort();
-			} catch(IloException e) {
-				e.printStackTrace();
+					
+				} catch(IloException e) {
+					e.printStackTrace();
+				}
 			}
-		}
 		};
 	}
+
 	
-	 	  	  	   		  	   	 			
 	private Thread getAscendingThread() {
 		return new Thread() {
 			@Override
@@ -291,31 +332,38 @@ public class BSearch extends Approach {
 						
 						// Update lower bound.
 						double bestIncumbent = Math.max(ascendingIncumbent, decendingIncumbent);
-						ascendingLowerBoundItems = Math.max(inst.LB, (int) Math.floor(bestIncumbent * h + 1));	
+						ascendingLowerBoundItems = Math.max(inst.LB, (int) (alfa * Math.floor(bestIncumbent * h + 1)));		
 						ascendingModel.setLB(ascendingLowerBoundItems);
 						ascendingModel.setUB(upperBoundItems);
 						
-						// Optimizes model for "num_aisles" aisles.
+						// Optimizes model for h aisles.
 						if(!decendingOptimal && (h <= decendingLastIt))
 							ascendingModel.solve();
 						else break;
 						
-						// If a better solution was found.
+						// If a solution was found.
 						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) { 
 							if(ascendingModel.getObjValue()/h > ascendingIncumbent) {						
 								ascendingIncumbent = ascendingModel.getObjValue()/h;
 								ascendingSolution = ascendingModel.saveSolution();
 							}
 							
-							// Update maximum of aisles.
+							// Update maximum of aisles and abort descending routine.
 							MAX_AISLES = Math.min(MAX_AISLES, (int) Math.floor(upperBoundItems / ascendingIncumbent));
-							if(MAX_AISLES < decendingLastIt || (run_bs && MAX_AISLES < TOTAL_AISLES)) {
-								System.out.println(MAX_AISLES);
-								decendingAborter.abort();
+							if(MAX_AISLES < decendingLastIt || run_bs) {
 								run_bs = false;
+								decendingAborter.abort();
 							}
-						}
+						} 
 						
+						// Saving solution logs.
+						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) {
+							itsols.add(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
+							feasibles.add(h);
+						} else 
+							itsols.set(h, Pair.of(decendingModel.getStatus(), itsols.get(h).getRight()));
+						
+						// If a iteration was fully optimized.
 						if(ascendingModel.getStatus() == IloCplex.Status.Infeasible || ascendingModel.getStatus() == IloCplex.Status.Optimal)
 							ascendingLastNotAborted = h;
 
@@ -331,11 +379,28 @@ public class BSearch extends Approach {
 		};
 	}
 	
+	// Sets the percentage of improvement lower bound the DR will take as LB.
+	public void setAlfa(double a) {
+		alfa = a;
+	}
+	
+	// Returns a bit set containing the used aisles.
+	protected BitSet getAisles(ItModel model) throws IloException {
+		BitSet aisles = new BitSet();
+		aisles.clear();
+		
+		for(int a = 0; a < inst.aisles.size(); a++) {
+			if(inst.dominated.get(a)) continue;
+			if(model.getValue(model.y[a]) >= .5)
+				aisles.set(a);
+		}
+		
+		return aisles;
+	}
 	
 	// === DEBUGGING AND LOGGING METHODS ===
 	private void print_header() throws IloException {
-		logln("SPO Optimizer (authors: @andrefeijosantos, @PedroFiorio)");
-		logln("Approach: Parallel Iterative Solver");
+		logln("First step: Binary Search to reduce search space");
 		logln("Thread count: CPLEX using up to " + (ascendingModel.model.getParam(IloCplex.Param.Threads) + decendingModel.model.getParam(IloCplex.Param.Threads)) + " threads");
 		logln("Variable types: 1 continuous; " + (ascendingModel.y.length + ascendingModel.p.length) + 
 				" integer (" + (ascendingModel.y.length + ascendingModel.p.length) + " binaries)");
