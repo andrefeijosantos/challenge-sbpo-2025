@@ -128,6 +128,7 @@ public class BSearch extends Approach {
 			} catch(InterruptedException e) {
 				e.printStackTrace();
 			}
+
 			
 			// Get the best thread solution.
 			if(ascendingIncumbent > decendingIncumbent) {
@@ -218,14 +219,14 @@ public class BSearch extends Approach {
 						} 
 						
 						// Saving solution logs.
-						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) {
-							itsols.add(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
+						if(decendingModel.getStatus() == IloCplex.Status.Feasible || decendingModel.getStatus() == IloCplex.Status.Optimal) {
+							itsols.set(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
 							feasibles.add(h);
 						} else 
 							itsols.set(h, Pair.of(decendingModel.getStatus(), itsols.get(h).getRight()));
 						
 						// If a iteration was fully optimized.
-						if(ascendingModel.getStatus() == IloCplex.Status.Infeasible || ascendingModel.getStatus() == IloCplex.Status.Optimal)
+						if(decendingModel.getStatus() == IloCplex.Status.Infeasible || decendingModel.getStatus() == IloCplex.Status.Optimal)
 							avoid.set(h);
 
 						printLine(h, ascendingLastIt, decendingModel, decendingIncumbent, "DE");
@@ -283,15 +284,15 @@ public class BSearch extends Approach {
 							upperBoundItems = ((int) decendingModel.getLB()) - 1;
 						
 						// Saving solution logs.
-						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) {
-							itsols.add(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
+						if(decendingModel.getStatus() == IloCplex.Status.Feasible || decendingModel.getStatus() == IloCplex.Status.Optimal) {
+							itsols.set(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
 							feasibles.add(h);
 						} else 
 							itsols.set(h, Pair.of(decendingModel.getStatus(), itsols.get(h).getRight()));
 						
 						// If a iteration was fully optimized.
-						if(ascendingModel.getStatus() == IloCplex.Status.Infeasible || ascendingModel.getStatus() == IloCplex.Status.Optimal)
-							ascendingLastNotAborted = h;
+						if(decendingModel.getStatus() == IloCplex.Status.Infeasible || decendingModel.getStatus() == IloCplex.Status.Optimal)
+							decendingLastNotAborted = h;
 	
 						printLine(h, ascendingLastIt, decendingModel, decendingIncumbent, "DE");
 					}
@@ -358,10 +359,10 @@ public class BSearch extends Approach {
 						
 						// Saving solution logs.
 						if(ascendingModel.getStatus() == IloCplex.Status.Feasible || ascendingModel.getStatus() == IloCplex.Status.Optimal) {
-							itsols.add(h, Pair.of(decendingModel.getStatus(), getAisles(decendingModel)));
+							itsols.set(h, Pair.of(ascendingModel.getStatus(), getAisles(ascendingModel)));
 							feasibles.add(h);
 						} else 
-							itsols.set(h, Pair.of(decendingModel.getStatus(), itsols.get(h).getRight()));
+							itsols.set(h, Pair.of(ascendingModel.getStatus(), itsols.get(h).getRight()));
 						
 						// If a iteration was fully optimized.
 						if(ascendingModel.getStatus() == IloCplex.Status.Infeasible || ascendingModel.getStatus() == IloCplex.Status.Optimal)
