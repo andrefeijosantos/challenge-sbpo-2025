@@ -21,10 +21,10 @@ import ilog.cplex.IloCplex.Status;
 public class GeneticAlgorithm extends Approach {
 	
 	// GA Parameters
-	int _PopSize           = 6000; // even number
+	int _PopSize           = 200; // even number
 	int _NumGenerations    =  100;
 	double _MutationRate   =  0.3;
-	double _AdaptationRate =  0.3;
+	double _AdaptationRate =  0.1;
 	double _RankPression   =  1.5; // (1, 2]
 	double _EliteRate      =  0.5;
 	
@@ -41,6 +41,7 @@ public class GeneticAlgorithm extends Approach {
     HeuristicModel _Model;
     NgbrModel _RemAisleModel, _AddAisleModel;
     Move _RemMove, _AddMove;
+    double _RemVal, _AddVal;
 	
 	// Random numbers settings
 	private static final long SEED = 1L;
@@ -295,7 +296,40 @@ public class GeneticAlgorithm extends Approach {
 	private void adaptation() {
 		long begTime = System.currentTimeMillis();
 		
-		_Adapted = new ArrayList<Individual>();
+		_Population.addAll(_Offspring);
+		_Population.addAll(_Mutated);
+		
+		for (int i = 0; i < _Population.size(); i++) {
+			if (RANDOM.nextDouble() > _AdaptationRate) continue;
+			
+			try {
+				Individual ind = _Population.get(i);
+				System.out.println("Start adaptation on " + ind.getId());
+				BitSet crom = ind.getCromossome();
+				Thread remThread = removeAisle(crom);
+				Thread addThread = addAisle(crom);
+				
+				remThread.start();
+				addThread.start();
+				
+				remThread.join();
+				addThread.join();
+			
+				if (_RemVal > _AddVal && _RemVal > ind.getFitness()) {
+					crom.clear(_RemMove.a1());
+					ind.setCromossome(crom);
+					ind.setFitness(_RemVal);
+				} else if (_AddVal > _RemVal && _AddVal > ind.getFitness()) {
+					crom.set(_AddMove.a2());
+					ind.setCromossome(crom);
+					ind.setFitness(_AddVal);
+				}
+				System.out.println("End adaptation on " + ind.getId());
+			} catch (InterruptedException e) {
+				System.out.println("Thread error on adaptation");
+				e.printStackTrace();
+			}
+		}
 		
 		long endTime = System.currentTimeMillis();
 		double duration = (endTime - begTime) / 1000.0;
@@ -305,9 +339,8 @@ public class GeneticAlgorithm extends Approach {
 	private void selection() {
 		long begTime = System.currentTimeMillis();
 		
-		_Population.addAll(_Offspring);
-		_Population.addAll(_Mutated);
-		_Population.addAll(_Adapted);
+		/*_Population.addAll(_Offspring);
+		_Population.addAll(_Mutated);*/
 		
 		Collections.sort(_Population, (a, b) -> Double.compare(a.getFitness(), b.getFitness()));
 		
@@ -372,7 +405,7 @@ public class GeneticAlgorithm extends Approach {
 				try {
 					_RemMove = null;
 					BitSet aislesCopy = (BitSet) aisles.clone();
-					double remAislesVal = 0.0;
+					_RemVal = 0.0;
 					
 					for (int a = 0; a < inst.aisles.size(); a++) {
 						if (!aislesCopy.get(a)) continue;
@@ -385,9 +418,9 @@ public class GeneticAlgorithm extends Approach {
 						
 						Status status = _RemAisleModel.getStatus(); 
 						if (status != IloCplex.Status.Infeasible && status != IloCplex.Status.Unknown &&
-								(_RemAisleModel.getObjValue() / aislesCopy.cardinality()) > remAislesVal) {
-							remAislesVal = _RemAisleModel.getObjValue() / aislesCopy.cardinality();
-							_RemMove = new Move(remAislesVal, -1, a, -1);
+								(_RemAisleModel.getObjValue() / aislesCopy.cardinality()) > _RemVal) {
+							_RemVal = _RemAisleModel.getObjValue() / aislesCopy.cardinality();
+							_RemMove = new Move(_RemVal, -1, a, -1);
 						}
 						
 						aislesCopy.set(a);
@@ -406,8 +439,8 @@ public class GeneticAlgorithm extends Approach {
 			public void run() {
 				try {
 					_AddMove = null;
+					_AddVal = 0.0;
 					BitSet aislesCopy = (BitSet) aisles.clone();
-					double addAislesVal = 0.0;
 					
 					for (int a = 0; a < inst.aisles.size(); a++) {
 						if (aislesCopy.get(a) || inst.dominated.get(a)) continue;
@@ -420,15 +453,15 @@ public class GeneticAlgorithm extends Approach {
 						
 						Status status = _AddAisleModel.getStatus(); 
 						if (status != IloCplex.Status.Infeasible && status != IloCplex.Status.Unknown &&
-								(_AddAisleModel.getObjValue() / aislesCopy.cardinality()) > addAislesVal) {
-							addAislesVal = _AddAisleModel.getObjValue() / aislesCopy.cardinality();
-							_AddMove = new Move(addAislesVal, -1, a, -1);
+								(_AddAisleModel.getObjValue() / aislesCopy.cardinality()) > _AddVal) {
+							_AddVal = _AddAisleModel.getObjValue() / aislesCopy.cardinality();
+							_AddMove = new Move(_AddVal, 1, -1, a);
 						}
 						
 						aislesCopy.clear(a);
 					}
 				} catch (IloException e) {
-					System.out.println("Error on addAilse");
+					System.out.println("Error on addAisle");
 					e.printStackTrace();
 				}
 			}
