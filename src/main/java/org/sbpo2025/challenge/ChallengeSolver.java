@@ -92,7 +92,7 @@ public class ChallengeSolver {
 	    		break;
 	    		
 	    	case GeneticAlgorithm:
-	    		GeneticAlgorithm ga = new GeneticAlgorithm(this.inst, stopWatch, getTimeLimitInSeconds(), 5, 18);
+	    		GeneticAlgorithm ga = new GeneticAlgorithm(this.inst, stopWatch, getTimeLimitInSeconds());
 	        	ga.optimize();
 	    		break;
     	}
