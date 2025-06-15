@@ -10,6 +10,7 @@ public class Individual implements Comparable<Individual> {
 	private BitSet _Cromossome;
 	private double _Fitness;
 	private boolean _Parthenogenesis;
+	private boolean _Improvable = true;
 	
 	// Temporary
 	private static final long SEED = 1L;
@@ -44,6 +45,14 @@ public class Individual implements Comparable<Individual> {
 	
 	public boolean getParthenogenesis() {
 		return _Parthenogenesis;
+	}
+	
+	public void setImprovable(boolean improvable) {
+		_Improvable = improvable;
+	}
+	
+	public boolean getImprovable() {
+		return _Improvable;
 	}
 	
 	public void print() {

@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.commons.lang3.tuple.Pair;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
@@ -21,10 +22,9 @@ import ilog.cplex.IloCplex.Status;
 public class GeneticAlgorithm extends Approach {
 	
 	// GA Parameters
-	int _PopSize           = 200; // even number
-	int _NumGenerations    =  100;
-	double _MutationRate   =  0.3;
-	double _AdaptationRate =  0.1;
+	int _PopSize;                  // even number
+	double _MutationRate   =  0.4;
+	int _AdptationNum      =    5;
 	double _RankPression   =  1.5; // (1, 2]
 	double _EliteRate      =  0.5;
 	
@@ -46,17 +46,22 @@ public class GeneticAlgorithm extends Approach {
 	// Random numbers settings
 	private static final long SEED = 1L;
     private static final Random RANDOM = new Random(SEED);
+    
+    // Binary Search
+    BSearch _BSearch;
 	
-	public GeneticAlgorithm(Instance inst, StopWatch stopWatch, long time_limit, int minAisles, int maxAisles) {
+	public GeneticAlgorithm(Instance inst, StopWatch stopWatch, long time_limit) {
 		super(inst, stopWatch, time_limit);
+		
+		_BSearch = new BSearch(inst, stopWatch, (int)(2*60*1000), 10);
 		
 		_AllowedAisles = new ArrayList<Integer>(inst.aisles.size());
 		for (int a = 0; a < inst.aisles.size(); a++) {
 			if (!inst.dominated.get(a)) _AllowedAisles.add(a);
 		}
 		
-		_MinAisles = minAisles;
-		_MaxAisles = Math.min(_AllowedAisles.size(), maxAisles);
+		/*_MinAisles = minAisles;
+		_MaxAisles = Math.min(_AllowedAisles.size(), maxAisles);*/
 		
 		_Population = new ArrayList<Individual>();
 		
@@ -73,11 +78,11 @@ public class GeneticAlgorithm extends Approach {
 	
 	public void optimize() { 
 		
-		generateInitialPop();
-	
 		long begTime = System.currentTimeMillis();
 		
-		for (int gen = 1; gen <= _NumGenerations; gen++) {
+		generateInitialPop();
+	
+		for (int gen = 1; getRemainingTime(stopWatch) > 5; gen++) {
 			
 			System.out.println("<--- Generation " + gen + " --->\n");
 			
@@ -98,8 +103,85 @@ public class GeneticAlgorithm extends Approach {
 	
 	private void generateInitialPop() {
 		long begTime = System.currentTimeMillis();
-		int countZeroFit = 0;
 		
+		_BSearch.setAlfa(0.5);
+		_BSearch.optimize();
+		
+		List<Pair<Integer, Integer>> intervals = new ArrayList<Pair<Integer,Integer>>();
+		
+		int begin = _BSearch.ascendingLastNotAborted;
+		for (int i = _BSearch.ascendingLastNotAborted + 1; i <= _BSearch.decendingLastNotAborted; i++) {
+			if (_BSearch.feasibles.contains(i)) {
+				intervals.add(Pair.of(begin, i));
+				begin = i;
+			}
+		}
+		
+		System.out.println("AC not abt = " + _BSearch.ascendingLastNotAborted);
+		System.out.println("DC not abt = " + _BSearch.decendingLastNotAborted);
+		
+		System.out.println("INTERVALS = " + intervals);
+		
+		_MinAisles = _BSearch.ascendingLastNotAborted + 1;
+		_MaxAisles = _BSearch.decendingLastNotAborted - 1;
+		
+		for (int i = 0; i < intervals.size(); i++) {
+			int beg = intervals.get(i).getLeft();
+			int end = intervals.get(i).getRight();
+			
+			// Create individuals with the limits of the interval
+			BitSet begCrom = _BSearch.itsols.get(beg).getRight();
+			double begFitness = evaluate(begCrom);
+			Individual begInd = new Individual(++_IndIdControl, begCrom, false);
+			begInd.setFitness(begFitness);
+			_Population.add(begInd);
+			
+			BitSet endCrom = _BSearch.itsols.get(end).getRight();
+			if (i == intervals.size() - 1) {
+				double endFitness = evaluate(endCrom);
+				Individual endInd = new Individual(++_IndIdControl, endCrom, false);
+				endInd.setFitness(endFitness);
+				_Population.add(endInd);
+			}
+			
+			for (int j = beg + 1; j < end; j++) {
+				for (int k = 0; k < 5; k++) {
+					BitSet crom = (BitSet) begCrom.clone();
+					addRandomAisles(crom, j - beg);
+					
+					double fitness = evaluate(crom);
+					Individual ind = new Individual(++_IndIdControl, crom, false);
+					ind.setFitness(fitness);
+					
+					_Population.add(ind);
+				}
+			}
+			
+			
+			for (int j = end - 1; j > beg; j--) {
+				for (int k = 0; k < 5; k++) {
+					BitSet crom = (BitSet) endCrom.clone();
+					removeRandomAisles(crom, end - j);
+					
+					double fitness = evaluate(crom);
+					Individual ind = new Individual(++_IndIdControl, crom, false);
+					ind.setFitness(fitness);
+					
+					_Population.add(ind);
+				}
+			}
+		}
+		
+		if (_Population.size() % 2 != 0) {
+			BitSet crom = (BitSet) _BSearch.itsols.get(_BSearch.ascendingLastNotAborted).getRight().clone();
+			mutateCromossome(crom);
+			Individual ind = new Individual(++_IndIdControl, crom, false);
+			double fitness = evaluate(crom);
+			ind.setFitness(fitness);
+			_Population.add(ind);
+		}
+		
+		/*
 		for (int ind = 0; ind < _PopSize; ind++) {
 			List<Integer> shuffledAisles = new ArrayList<Integer>(_AllowedAisles); 
 			Collections.shuffle(shuffledAisles, RANDOM);
@@ -125,6 +207,13 @@ public class GeneticAlgorithm extends Approach {
 			}
 			_Population.add(newInd);
 		}
+		*/
+		_PopSize = _Population.size();
+		System.out.println("Population size = " + _PopSize);
+		
+		int countZeroFit = 0;
+		for (int i = 0; i < _Population.size(); i++)
+			if (_Population.get(i).getFitness() == 0.0) countZeroFit++;
 		
 		long endTime = System.currentTimeMillis();
 		double duration = (endTime - begTime) / 1000.0;
@@ -299,7 +388,51 @@ public class GeneticAlgorithm extends Approach {
 		_Population.addAll(_Offspring);
 		_Population.addAll(_Mutated);
 		
-		for (int i = 0; i < _Population.size(); i++) {
+		Collections.sort(_Population, (a, b) -> Double.compare(a.getFitness(), b.getFitness()));
+		
+		List<Integer> adapted = new ArrayList<Integer>();
+		
+		int i = _Population.size() - 1;
+		while (i >= 0 && adapted.size() < _AdptationNum) {
+			Individual ind = _Population.get(i);
+			BitSet crom = ind.getCromossome();
+			
+			if (ind.getImprovable()) {
+				try {
+					Thread remThread = removeAisle(crom, ind.getFitness());
+					Thread addThread = addAisle(crom, ind.getFitness());
+					
+					remThread.start();
+					addThread.start();
+					
+					remThread.join();
+					addThread.join();
+					
+					if (_RemVal > _AddVal && _RemVal > ind.getFitness()) {
+						crom.clear(_RemMove.a1());
+						ind.setCromossome(crom);
+						ind.setFitness(_RemVal);
+						adapted.add(ind.getId());
+					} else if (_AddVal > _RemVal && _AddVal > ind.getFitness()) {
+						crom.set(_AddMove.a2());
+						ind.setCromossome(crom);
+						ind.setFitness(_AddVal);
+						adapted.add(ind.getId());
+					} else {
+						ind.setImprovable(false);
+					}
+				} catch (InterruptedException e) {
+					System.out.println("Thread error on adaptation");
+					e.printStackTrace();
+				}
+			
+			}
+			i--;
+		}
+		
+		System.out.println("Adapted: " + adapted);
+		
+		/*for (int i = 0; i < _Population.size(); i++) {
 			if (RANDOM.nextDouble() > _AdaptationRate) continue;
 			
 			try {
@@ -329,7 +462,7 @@ public class GeneticAlgorithm extends Approach {
 				System.out.println("Thread error on adaptation");
 				e.printStackTrace();
 			}
-		}
+		}*/
 		
 		long endTime = System.currentTimeMillis();
 		double duration = (endTime - begTime) / 1000.0;
@@ -361,6 +494,24 @@ public class GeneticAlgorithm extends Approach {
 	}
 	
 	// ===== Auxiliary methods =====
+	
+	private double evaluate(BitSet cromossome) {
+		try {				
+			_Model.setAisles(cromossome);
+			_Model.setTimeLimit(getRemainingTime(stopWatch));
+			_Model.solve();
+			
+			if (_Model.getStatus() != IloCplex.Status.Infeasible && _Model.getStatus() != IloCplex.Status.Unknown)
+				return _Model.getObjValue() / cromossome.cardinality();
+			else
+				return 0.0;
+			
+		} catch(IloException e) {
+			System.out.println("Error on evaluate with cromossome = " + cromossome);
+			e.printStackTrace();
+			return 0.0;
+		}
+	}
 	
 	private List<Integer> susRoulette(List<Double> cumProb, int numSelections) {
 		List<Integer> result = new ArrayList<Integer>(Collections.nCopies(numSelections, null));
@@ -398,7 +549,7 @@ public class GeneticAlgorithm extends Approach {
 	    return positions;
 	}
 	
-	private Thread removeAisle(BitSet aisles) {
+	private Thread removeAisle(BitSet aisles, double fitness) {
 		return new Thread() {
 			@Override
 			public void run() {
@@ -406,6 +557,8 @@ public class GeneticAlgorithm extends Approach {
 					_RemMove = null;
 					BitSet aislesCopy = (BitSet) aisles.clone();
 					_RemVal = 0.0;
+					
+					_RemAisleModel.setLB(Math.max(inst.LB, (int)(Math.floor(fitness * (aisles.cardinality()-1))) + 1));
 					
 					for (int a = 0; a < inst.aisles.size(); a++) {
 						if (!aislesCopy.get(a)) continue;
@@ -433,7 +586,7 @@ public class GeneticAlgorithm extends Approach {
 		};
 	}
 	
-	private Thread addAisle(BitSet aisles) {
+	private Thread addAisle(BitSet aisles, double fitness) {
 		return new Thread() {
 			@Override
 			public void run() {
@@ -441,6 +594,8 @@ public class GeneticAlgorithm extends Approach {
 					_AddMove = null;
 					_AddVal = 0.0;
 					BitSet aislesCopy = (BitSet) aisles.clone();
+					
+					_AddAisleModel.setLB(Math.max(inst.LB, (int)(Math.floor(fitness * (aisles.cardinality()+1))) + 1));
 					
 					for (int a = 0; a < inst.aisles.size(); a++) {
 						if (aislesCopy.get(a) || inst.dominated.get(a)) continue;
@@ -468,6 +623,34 @@ public class GeneticAlgorithm extends Approach {
 		};
 	}
 	
+	private void removeRandomAisles(BitSet crom, int n) {
+		if (crom.cardinality() - n <= 0) {
+			System.out.println("!!! Invalid remove !!!");
+			return;
+		}
+		
+		List<Integer> onePos = getOnePositions(crom);
+		Collections.shuffle(onePos);
+		
+		int removed = 0; 
+		for (int i = 0; i < onePos.size() && removed < n; i++) {
+			crom.clear(onePos.get(i));
+			removed++;
+		}
+	}
+	
+	private void addRandomAisles(BitSet crom, int n) {
+		Collections.shuffle(_AllowedAisles, RANDOM);
+		
+		int added = 0;
+		for (int i = 0; i < _AllowedAisles.size() && added < n; i++) {
+			if (!crom.get(_AllowedAisles.get(i))) {
+				crom.set(_AllowedAisles.get(i));
+				added++;
+			}
+		}
+	}
+	
 	private void printPopulationStats() {
 		double sum = 0.0;
 		double sumSquares = 0.0;
@@ -484,7 +667,7 @@ public class GeneticAlgorithm extends Approach {
 		double stdDev = Math.sqrt((sumSquares / _PopSize) - (avg * avg));
 		
 		System.out.println();
-		System.out.println("Best Fitness : " + String.format("%.2f", best));
+		System.out.println("Best Fitness : " + String.format("%.4f", best));
 		System.out.println("Average      : " + String.format("%.2f", avg));
 		System.out.println("Std Deviation: " + String.format("%.2f", stdDev));
 		System.out.println();
