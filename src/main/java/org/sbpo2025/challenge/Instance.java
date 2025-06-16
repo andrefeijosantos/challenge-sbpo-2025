@@ -26,7 +26,7 @@ public class Instance {
     public List<Map<Integer, Integer>> aisles;
     public List<Map<Integer, Integer>> itemsPerOrders;
     public List<Map<Integer, Integer>> itemsPerAisles;
-    public int LB, UB, n;
+    public int LB, UB, n, totalUnits;
 
 	// Optimizations.
 	BitSet wontBuild, wontUse;
@@ -268,11 +268,12 @@ public class Instance {
 		}
 		
 		// Remove (Qi - Di) unique orders when Qi < Di.
+		totalUnits = 0;
 		for(int i = 0; i < n; i++) {
 			int sumUnits = 0;
 			for(int o : itemsPerOrders.get(i).keySet()) {
 				if(orders.get(o).get(i) == 1 && orders.get(o).size() == 1) {
-					sumUnits++;
+					sumUnits++; totalUnits++;
 					if(sumUnits > Q.get(i))
 						wontBuild.set(o);
 				}

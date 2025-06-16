@@ -24,7 +24,7 @@ public class GeneticAlgorithm extends Approach {
 	// GA Parameters
 	int _PopSize;                  // even number
 	double _MutationRate   =  0.4;
-	int _AdptationNum      =    4;
+	int _AdptationNum      =    5;
 	double _RankPression   =  1.5; // (1, 2]
 	double _EliteRate      =  0.5;
 	
@@ -98,6 +98,8 @@ public class GeneticAlgorithm extends Approach {
 			double passedTime = (currTime - begTime) / 1000.0;
 			System.out.println("Passed time: " + String.format("%.2f", passedTime) + "\n");
 			
+			
+			_AdptationNum--;
 		}
 		
 		try {

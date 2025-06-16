@@ -54,7 +54,7 @@ public class TSHeuristic extends Approach {
 		aisles.clear();
 		
 		initialSolution = new BSearch(inst, stopWatch, (int)(2*60*1000), 0.9);
-		// initialSolution.setAlfa(0.9);
+		initialSolution.setAlfa(0.95);
 
 		mv1Model = new NgbrModel(inst, Runtime.getRuntime().availableProcessors()/2);
 		mv1Model.build();

@@ -35,9 +35,10 @@ public class Challenge {
         
         switch(solver.getItemsDistribution()) {
         	case AllOneItem:
-        		if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= HUGE_NUMBER_OF_BOOLS)
-        			solution = solver.solve(Method.GeneticAlgorithm, stopWatch);
-        		else if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= BIG_NUMBER_OF_BOOLS)
+        		//if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= HUGE_NUMBER_OF_BOOLS)
+        			//solution = solver.solve(Method.GeneticAlgorithm, stopWatch);
+        		//else 
+        		if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= BIG_NUMBER_OF_BOOLS)
         			solution = solver.solve(Method.TabuSearch, stopWatch);
         		else
         			solution = solver.solve(Method.ParallelIterative, stopWatch);
