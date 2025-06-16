@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,8 @@ public class Instance {
 	ArrayList<Integer> Q, D;
 	Set<Pair<Integer, Integer>> mutexOrders;
 	BitSet easy, dominated;
+	
+	int medianItems;
     
     public Instance(String file) {
         readInput(file);
@@ -176,6 +179,18 @@ public class Instance {
 				Qi += aisles.get(a).get(i);
 			Q.add(Qi);
 		}
+		
+		List<Integer> Qa = new ArrayList<Integer>();
+		for(int a = 0; a < aisles.size(); a++) {
+			Qa.add(0);
+			for(int i : aisles.get(a).keySet())
+				Qa.set(a, Qa.get(a) + aisles.get(a).get(i));
+		}
+		Collections.sort(Qa);
+		
+		if(Qa.size() % 2 != 0)
+			medianItems = Qa.get(Qa.size()/2);
+		else medianItems = (Qa.get(Qa.size()/2-1) + Qa.get(Qa.size()/2))/2;
 
 		// Check for orders that won't be built for sure.
 		for(int o = 0; o < orders.size(); o++) {			

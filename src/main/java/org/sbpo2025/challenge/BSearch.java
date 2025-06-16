@@ -65,12 +65,12 @@ public class BSearch extends Approach {
 	// Binary Search.
 	Pair<Integer, Integer> decendingRange;
 	BitSet avoid = new BitSet();            // Already executed iterations.
-	int NO_UB_TIMEOUT = 30,                 // If no solution was found within this time, then we assume we'll not find UB.
-		tol;                                // Tolerance for UB.
+	int NO_UB_TIMEOUT = 30;                 // If no solution was found within this time, then we assume we'll not find UB.
+	double tol;                             // Tolerance for UB.
 	boolean run_bs = true;                  // 1 if the DR should run binary search; 0, otherwise.     
 	
 
-	public BSearch(Instance inst, StopWatch stopWatch, long timeLimit, int tolerance) {
+	public BSearch(Instance inst, StopWatch stopWatch, long timeLimit, double tolerance) {
 		super(inst, stopWatch, timeLimit);
 		
 		ascendingModel = new ItModel(inst, (int) Math.ceil(Runtime.getRuntime().availableProcessors()/2));
@@ -202,8 +202,8 @@ public class BSearch extends Approach {
 						// If a solution was found.
 						if(decendingModel.getStatus() == IloCplex.Status.Optimal || decendingModel.getStatus() == IloCplex.Status.Feasible) {
 							// Update range.
-							if(decendingModel.getObjValue() + tol >= inst.UB)  {
-								decendingRange = Pair.of(1, h);
+							if(decendingModel.getObjValue() >= tol*inst.UB)  {
+								decendingRange = Pair.of(decendingRange.getLeft(), h);
 								decendingLastNotAborted = h;
 							}
 							else 
@@ -217,6 +217,8 @@ public class BSearch extends Approach {
 								decendingRange = Pair.of(decendingRange.getLeft(), decendingLastNotAborted);
 							}
 						} 
+						//else 
+							//decendingRange = Pair.of(h, decendingRange.getRight());
 						
 						// Saving solution logs.
 						if(decendingModel.getStatus() == IloCplex.Status.Feasible || decendingModel.getStatus() == IloCplex.Status.Optimal) {

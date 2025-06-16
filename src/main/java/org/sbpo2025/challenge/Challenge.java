@@ -8,7 +8,9 @@ import org.apache.commons.lang3.time.StopWatch;
 public class Challenge {
 	
 	final static int SMALL_ENOUGH = 1000,
-		             HUGE_NUMBER_OF_BOOLS = 2400;
+		             BIG_NUMBER_OF_BOOLS = 2400,
+		             HUGE_NUMBER_OF_BOOLS = 5700;
+	final static double BIG_RANGABLE = 3.7;
 	
     public static void main(String[] args) {
         // Start the stopwatch to track the running time
@@ -28,25 +30,28 @@ public class Challenge {
         var solver = new ChallengeSolver(instance);
         ChallengeSolution solution = null;
         
+        //solution = solver.solve(Method.ParallelIterative, stopWatch);
         //solution = solver.solve(Method.GeneticAlgorithm, stopWatch);
         
         switch(solver.getItemsDistribution()) {
         	case AllOneItem:
         		if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= HUGE_NUMBER_OF_BOOLS)
+        			solution = solver.solve(Method.GeneticAlgorithm, stopWatch);
+        		else if(instance.orders.size() - solver.getAmountOfUnitOrders() + instance.aisles.size() >= BIG_NUMBER_OF_BOOLS)
         			solution = solver.solve(Method.TabuSearch, stopWatch);
         		else
         			solution = solver.solve(Method.ParallelIterative, stopWatch);
         		break;
         		
         	case MixedItemsQuantities:
-        		if(instance.orders.size() <= SMALL_ENOUGH)
+        		if(instance.orders.size() <= SMALL_ENOUGH || (100.0/instance.aisles.size() * ((double)instance.UB)/instance.medianItems >= BIG_RANGABLE))
         			solution = solver.solve(Method.ParallelIterative, stopWatch);
         		else
         			solution = solver.solve(Method.TabuSearch, stopWatch);
         		break;
         		
         	case AllMultipleItems:
-        		if(instance.orders.size() <= SMALL_ENOUGH)
+        		if(instance.orders.size() <= SMALL_ENOUGH || (100.0/instance.aisles.size() * ((double)instance.UB)/instance.medianItems >= BIG_RANGABLE))
         			solution = solver.solve(Method.ParallelIterative, stopWatch);
         		else
         			solution = solver.solve(Method.TabuSearch, stopWatch);

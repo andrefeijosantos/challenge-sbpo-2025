@@ -38,9 +38,13 @@ public class TSHeuristic extends Approach {
 			timeOutMv1 = false,
 			timeOutMv2 = false;
 	
-	double DISTURB_FACTOR = 0.5;
-	int    MAX_NO_IMPRV_ITS = 1000,
-		   noImptvIts = 0;
+	boolean hillclimb = true;
+	double DISTURB_FACTOR = 1;
+	int    MAX_NO_IMPRV_ITS,
+		   noImprvIts = 0;
+	
+	// Solving info.
+	int numIts = 0;
 	
 	
 	public TSHeuristic(Instance inst, StopWatch stopWatch, long time_limit) {
@@ -49,16 +53,19 @@ public class TSHeuristic extends Approach {
 		aisles = new BitSet();
 		aisles.clear();
 		
-		initialSolution = new BSearch(inst, stopWatch, (int)(2*60*1000), 10);
+		initialSolution = new BSearch(inst, stopWatch, (int)(2*60*1000), 0.9);
+		// initialSolution.setAlfa(0.9);
 
-		mv1Model = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
+		mv1Model = new NgbrModel(inst, Runtime.getRuntime().availableProcessors()/2);
 		mv1Model.build();
 		
-		mv2Model = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
+		mv2Model = new NgbrModel(inst, Runtime.getRuntime().availableProcessors()/2);
 		mv2Model.build();
 		
 		tabu = new int[inst.aisles.size()];
 		for(int i = 0; i < 0; i++) tabu[i] = 0;
+		
+		MAX_NO_IMPRV_ITS = inst.aisles.size() + TABU_LOCK;
 	}
 	
 	
@@ -74,12 +81,11 @@ public class TSHeuristic extends Approach {
 			objVal = initialSolution.objVal;
 			
 			print_header();
-			while(!timeOut && noImptvIts <= MAX_NO_IMPRV_ITS) {
+			while(!timeOut && noImprvIts <= MAX_NO_IMPRV_ITS) {
 				Move mv = move();
+				numIts++;
 				
 				if(mv != null)  {					
-					logln("" + mv);
-					
 					switch(mv.mvType()) {
 						case 1:
 							aisles.clear(mv.a1());
@@ -93,12 +99,20 @@ public class TSHeuristic extends Approach {
 						solution = currSolution;
 						objVal   = currObj;
 						bestAisles = (BitSet) aisles.clone();
-						noImptvIts = 0;
-					} else noImptvIts++;
-				} 
+						noImprvIts = 0;
+						
+						printLine();
+					} else noImprvIts++;
+				} else {
+					hillclimb = false;
+					DISTURB_FACTOR = 0.5;
+				}
 				
 				maxAisles = (int) Math.floor(inst.UB/objVal);
 				updateTabu();
+				
+				if(noImprvIts > 0 && noImprvIts % 10 == 0)
+					printLine();
 			}
 
 			
@@ -327,6 +341,16 @@ public class TSHeuristic extends Approach {
 		logln("Improving solution for range: [" + minAisles + "," + maxAisles + "].");
 		logln("");
 		
-		logln("  It  |  h  |  H  |  found  |  Incumbent  |  No imprv. | Max. no imprv.  ");
+		logln("  It  |  h  |  H  |  Incumbent  |  No imprv. |  Max. no imprv.  ");
+	}
+	
+	private void printLine() throws IloException {
+		String log = String.format("%5" + "s |", numIts);
+		log += String.format("%4" + "s |", minAisles);
+		log += String.format("%4" + "s |", maxAisles);
+		log += String.format("%12.6f" + " |", objVal);
+		log += String.format("%11" + "s |", noImprvIts);
+		log += String.format("%15" + "s ", MAX_NO_IMPRV_ITS);
+		logln(log);
 	}
 }

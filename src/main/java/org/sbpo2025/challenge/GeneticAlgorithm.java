@@ -24,7 +24,7 @@ public class GeneticAlgorithm extends Approach {
 	// GA Parameters
 	int _PopSize;                  // even number
 	double _MutationRate   =  0.4;
-	int _AdptationNum      =    5;
+	int _AdptationNum      =    4;
 	double _RankPression   =  1.5; // (1, 2]
 	double _EliteRate      =  0.5;
 	
@@ -53,7 +53,7 @@ public class GeneticAlgorithm extends Approach {
 	public GeneticAlgorithm(Instance inst, StopWatch stopWatch, long time_limit) {
 		super(inst, stopWatch, time_limit);
 		
-		_BSearch = new BSearch(inst, stopWatch, (int)(2*60*1000), 10);
+		_BSearch = new BSearch(inst, stopWatch, (int)(2*60*1000), 0.9);
 		
 		_AllowedAisles = new ArrayList<Integer>(inst.aisles.size());
 		for (int a = 0; a < inst.aisles.size(); a++) {
@@ -68,21 +68,21 @@ public class GeneticAlgorithm extends Approach {
 		_Model = new HeuristicModel(inst, Runtime.getRuntime().availableProcessors());
 		_Model.build();
 		
-		_RemAisleModel = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
+		_RemAisleModel = new NgbrModel(inst, Runtime.getRuntime().availableProcessors()/2);
 		_RemAisleModel.build();
 		
-		_AddAisleModel = new NgbrModel(inst, Runtime.getRuntime().availableProcessors());
+		_AddAisleModel = new NgbrModel(inst, Runtime.getRuntime().availableProcessors()/2);
 		_AddAisleModel.build();
 		
 	}
 	
-	public void optimize() { 
+	public ChallengeSolution optimize() { 
 		
 		long begTime = System.currentTimeMillis();
 		
 		generateInitialPop();
 	
-		for (int gen = 1; getRemainingTime(stopWatch) > 5; gen++) {
+		for (int gen = 1; getRemainingTime(stopWatch) > 5 && gen <= 2; gen++) {
 			
 			System.out.println("<--- Generation " + gen + " --->\n");
 			
@@ -99,6 +99,27 @@ public class GeneticAlgorithm extends Approach {
 			System.out.println("Passed time: " + String.format("%.2f", passedTime) + "\n");
 			
 		}
+		
+		try {
+			double max = 0; int best = -1;
+			for(int p = 0; p < _Population.size(); p++) 
+				if(_Population.get(p).getFitness() > max) {
+					max = _Population.get(p).getFitness();
+					best = p;
+				}
+				logln("best = " + _Population.get(best).getCromossome());
+			
+				_Model.setTimeLimit(100000);
+				_Model.setAisles(_Population.get(best).getCromossome());
+				_Model.solve();
+				solution = _Model.saveSolution();
+				
+		} catch (IloException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return solution;
 	}
 	
 	private void generateInitialPop() {
@@ -394,6 +415,8 @@ public class GeneticAlgorithm extends Approach {
 		
 		int i = _Population.size() - 1;
 		while (i >= 0 && adapted.size() < _AdptationNum) {
+			logln("rodando");
+			
 			Individual ind = _Population.get(i);
 			BitSet crom = ind.getCromossome();
 			
@@ -630,7 +653,7 @@ public class GeneticAlgorithm extends Approach {
 		}
 		
 		List<Integer> onePos = getOnePositions(crom);
-		Collections.shuffle(onePos);
+		Collections.shuffle(onePos, RANDOM);
 		
 		int removed = 0; 
 		for (int i = 0; i < onePos.size() && removed < n; i++) {

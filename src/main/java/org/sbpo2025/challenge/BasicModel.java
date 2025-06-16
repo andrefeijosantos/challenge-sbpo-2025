@@ -142,6 +142,10 @@ public class BasicModel {
 		model.setParam(IloCplex.Param.TimeLimit, timeLimit);
 	}
 	
+	public double getTimeLimit() throws IloException {
+		return model.getParam(IloCplex.Param.TimeLimit);
+	}
+	
 	public double getValue(IloIntVar var) throws IloException {
 		return model.getValue(var);
 	}
